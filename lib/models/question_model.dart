@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Question {
   final String id;
   final String questionText;
@@ -13,13 +15,14 @@ class Question {
     required this.explanation,
   });
 
-  // Firebase එකෙන් එන data Model එකකට හරවන්න
-  factory Question.fromFirestore(Map<String, dynamic> data, String id) {
+  // Firebase එකේ නම්‍යතාවය අනුව දත්ත ලබාගැනීම
+  factory Question.fromFirestore(DocumentSnapshot doc) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return Question(
-      id: id,
+      id: doc.id,
       questionText: data['questionText'] ?? '',
       options: List<String>.from(data['options'] ?? []),
-      correctAnswerIndex: data['correctAnswerIndex'] ?? 0,
+      correctAnswerIndex: (data['correctAnswerIndex'] ?? 0) as int,
       explanation: data['explanation'] ?? '',
     );
   }

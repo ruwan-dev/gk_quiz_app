@@ -4,12 +4,14 @@ import '../models/question_model.dart';
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // Firebase එකේ 'quizzes' collection එකෙන් ප්‍රශ්න ටික stream එකක් විදියට ගන්නවා
-  Stream<List<Question>> getQuestions() {
-    return _db.collection('quizzes').snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) {
-        return Question.fromFirestore(doc.data() as Map<String, dynamic>, doc.id);
-      }).toList();
-    });
+  Future<List<Question>> getQuestions() async {
+    try {
+      // මෙන්න මෙතනයි 'quizzes' collection එක පාවිච්චි කරන්නේ
+      QuerySnapshot snapshot = await _db.collection('quizzes').get();
+      return snapshot.docs.map((doc) => Question.fromFirestore(doc)).toList();
+    } catch (e) {
+      print("Firebase Fetch Error: $e");
+      return [];
+    }
   }
 }
