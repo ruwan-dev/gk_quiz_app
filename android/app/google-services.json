@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "128784053347",
+    "project_id": "sl-gk-7c93b",
+    "storage_bucket": "sl-gk-7c93b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:128784053347:android:50b9de1001d238ed56f456",
+        "android_client_info": {
+          "package_name": "com.example.gk_quiz_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBO6mFrjD-ghbxV6tIFCfhVYCk3ivoC_p4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
