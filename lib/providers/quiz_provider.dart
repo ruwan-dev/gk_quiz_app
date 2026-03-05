@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../models/question_model.dart';
 import '../services/database_service.dart';
 
@@ -9,32 +10,62 @@ class QuizProvider with ChangeNotifier {
   int _currentIndex = 0;
   int _score = 0;
   int? _selectedAnswerIndex;
-  bool _isAnswerChecked = false; // උත්තරේ චෙක් කරලාද කියලා බලන්න
+  bool _isAnswerChecked = false;
 
-  // Getters
+  Timer? _timer;
+  int _secondsRemaining = 60;
+  final int _totalSeconds = 60;
+
   List<Question> get questions => _questions;
   bool get isLoading => _isLoading;
   int get currentIndex => _currentIndex;
   int get score => _score;
   int? get selectedAnswerIndex => _selectedAnswerIndex;
   bool get isAnswerChecked => _isAnswerChecked;
+  int get secondsRemaining => _secondsRemaining;
+  double get timerPercent => _secondsRemaining / _totalSeconds;
 
-  Future<void> loadQuestions() async {
+  Future<void> loadQuestions(String categoryId, String paperId) async {
     _isLoading = true;
+    _currentIndex = 0;
+    _score = 0;
+    _selectedAnswerIndex = null;
+    _isAnswerChecked = false;
     notifyListeners();
-    _questions = await _dbService.getQuestions();
+    
+    _questions = await _dbService.getQuestions(categoryId, paperId);
     _isLoading = false;
+    startTimer();
     notifyListeners();
   }
 
+  void startTimer() {
+    _timer?.cancel();
+    _secondsRemaining = _totalSeconds;
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_secondsRemaining > 0) {
+        _secondsRemaining--;
+        notifyListeners();
+      } else {
+        _timer?.cancel();
+        handleTimeUp();
+      }
+    });
+  }
+
+  void handleTimeUp() {
+    if (_currentIndex < _questions.length - 1) {
+      nextQuestion();
+    }
+  }
+
   void selectAnswer(int index) {
-    if (!_isAnswerChecked) { // චෙක් කරලා නැත්නම් විතරක් සිලෙක්ට් කරන්න දෙන්න
+    if (!_isAnswerChecked) {
       _selectedAnswerIndex = index;
       notifyListeners();
     }
   }
 
-  // "Check Answer" button එක එබුවම ක්‍රියාත්මක වන කොටස
   void checkAnswer() {
     if (_selectedAnswerIndex != null && !_isAnswerChecked) {
       _isAnswerChecked = true;
@@ -50,6 +81,7 @@ class QuizProvider with ChangeNotifier {
       _currentIndex++;
       _selectedAnswerIndex = null;
       _isAnswerChecked = false;
+      startTimer();
       notifyListeners();
     }
   }
@@ -59,7 +91,14 @@ class QuizProvider with ChangeNotifier {
       _currentIndex--;
       _selectedAnswerIndex = null;
       _isAnswerChecked = false;
+      startTimer();
       notifyListeners();
     }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 }
