@@ -4,21 +4,25 @@ import '../models/question_model.dart';
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  // 🚀 ප්‍රශ්න ලබාගන්නා ෆන්ක්ෂන් එක
   Future<List<Question>> getQuestions(String categoryId, String paperId) async {
     try {
-      // Path: categories -> gk -> papers -> paper_01 -> questions
-      QuerySnapshot snapshot = await _db
+      var snapshot = await _db
           .collection('categories')
           .doc(categoryId)
           .collection('papers')
           .doc(paperId)
           .collection('questions')
+          .orderBy('createdAt')
           .get();
-          
-      return snapshot.docs.map((doc) => Question.fromFirestore(doc)).toList();
+
+      // මෙතනදී .map<Question> කියලා දාන එකෙන් අර Type Error එක නැති වෙනවා
+      return snapshot.docs.map<Question>((doc) => Question.fromFirestore(doc)).toList();
     } catch (e) {
-      print("Firebase Fetch Error: $e");
+      print("Error fetching questions: $e");
       return [];
     }
   }
+
+  // වෙනත් දත්ත ලබාගැනීමේ ෆන්ක්ෂන් මෙතනට එක් කරන්න පුළුවන්...
 }

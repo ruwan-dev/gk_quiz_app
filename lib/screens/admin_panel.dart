@@ -9,145 +9,90 @@ class AdminPanel extends StatefulWidget {
 }
 
 class _AdminPanelState extends State<AdminPanel> {
-  final _formKey = GlobalKey<FormState>();
-  
-  final TextEditingController _categoryController = TextEditingController();
-  final TextEditingController _paperController = TextEditingController();
+  final TextEditingController _catNameController = TextEditingController();
+  final TextEditingController _catIdController = TextEditingController();
+  final TextEditingController _paperIdController = TextEditingController();
   final TextEditingController _questionController = TextEditingController();
-  final List<TextEditingController> _optionControllers = 
-      List.generate(4, (index) => TextEditingController());
+  final List<TextEditingController> _optionControllers = List.generate(4, (_) => TextEditingController());
   final TextEditingController _explanationController = TextEditingController();
-  
-  int _correctIndex = 0; 
-  bool _isSaving = false;
+  final TextEditingController _imageUrlController = TextEditingController();
 
-  Future<void> _saveToFirestore() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isSaving = true);
+  int _correctAnswerIndex = 0; 
+  String? _selectedCatId;
+  String? _selectedPaperId;
 
-      final String catId = _categoryController.text.trim().toLowerCase();
-      final String paperId = _paperController.text.trim().toLowerCase();
+  void _addCategory() async {
+    if (_catNameController.text.isNotEmpty) {
+      await FirebaseFirestore.instance.collection('categories').doc(_catIdController.text).set({
+        'name': _catNameController.text, 'id': _catIdController.text, 'createdAt': Timestamp.now(),
+      });
+      _catNameController.clear(); _catIdController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Category Added!")));
+    }
+  }
 
-      try {
-        await FirebaseFirestore.instance
-            .collection('categories')
-            .doc(catId)
-            .collection('papers')
-            .doc(paperId)
-            .set({
-              'lastUpdated': Timestamp.now(),
-              'paperName': paperId.toUpperCase(),
-            }, SetOptions(merge: true));
-
-        await FirebaseFirestore.instance
-            .collection('categories')
-            .doc(catId)
-            .collection('papers')
-            .doc(paperId)
-            .collection('questions')
-            .add({
-              'questionText': _questionController.text.trim(),
-              'options': _optionControllers.map((c) => c.text.trim()).toList(),
-              'correctAnswerIndex': _correctIndex,
-              'explanation': _explanationController.text.trim(),
-              'createdAt': Timestamp.now(),
-            });
-
-        _questionController.clear();
-        for (var c in _optionControllers) {
-          c.clear();
-        }
-        _explanationController.clear();
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("✅ Saved successfully!")), // ඉංග්‍රීසි කළා
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("❌ Error: $e")),
-        );
-      } finally {
-        setState(() => _isSaving = false);
-      }
+  void _addQuestion() async {
+    if (_selectedPaperId != null && _questionController.text.isNotEmpty) {
+      await FirebaseFirestore.instance
+          .collection('categories').doc(_selectedCatId).collection('papers').doc(_selectedPaperId).collection('questions').add({
+        'questionText': _questionController.text,
+        'options': _optionControllers.map((c) => c.text).toList(),
+        'correctAnswerIndex': _correctAnswerIndex,
+        'explanation': _explanationController.text,
+        'imageUrl': _imageUrlController.text,
+        'createdAt': Timestamp.now(),
+      });
+      _questionController.clear(); _imageUrlController.clear();
+      for (var c in _optionControllers) { c.clear(); }
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Question Added!")));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Admin - Add Question")), // ඉංග්‍රීසි කළා
+      appBar: AppBar(title: const Text("Admin Panel")),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _categoryController,
-                      decoration: const InputDecoration(labelText: "Category (gk/iq)", border: OutlineInputBorder()),
-                      validator: (v) => v!.isEmpty ? "Required" : null,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _paperController,
-                      decoration: const InputDecoration(labelText: "Paper ID (paper_01)", border: OutlineInputBorder()),
-                      validator: (v) => v!.isEmpty ? "Required" : null,
-                    ),
-                  ),
-                ],
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            TextField(controller: _catNameController, decoration: const InputDecoration(labelText: "Category Name")),
+            TextField(controller: _catIdController, decoration: const InputDecoration(labelText: "Category ID")),
+            ElevatedButton(onPressed: _addCategory, child: const Text("Add Category")),
+            const Divider(height: 50),
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('categories').snapshots(),
+              builder: (context, snap) {
+                if (!snap.hasData) return const CircularProgressIndicator();
+                return DropdownButton<String>(
+                  value: _selectedCatId,
+                  hint: const Text("Select Category"),
+                  items: snap.data!.docs.map((d) => DropdownMenuItem(value: d.id, child: Text(d['name']))).toList(),
+                  onChanged: (v) => setState(() { _selectedCatId = v; _selectedPaperId = null; }),
+                );
+              },
+            ),
+            if (_selectedCatId != null)
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('categories').doc(_selectedCatId).collection('papers').snapshots(),
+                builder: (context, snap) {
+                  if (!snap.hasData) return const CircularProgressIndicator();
+                  return DropdownButton<String>(
+                    value: _selectedPaperId,
+                    hint: const Text("Select Paper"),
+                    items: snap.data!.docs.map((d) => DropdownMenuItem(value: d.id, child: Text(d['title']))).toList(),
+                    onChanged: (v) => setState(() => _selectedPaperId = v),
+                  );
+                },
               ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _questionController,
-                decoration: const InputDecoration(labelText: "Question Text", border: OutlineInputBorder()),
-                maxLines: 2,
-                validator: (v) => v!.isEmpty ? "Enter question" : null,
-              ),
-              const SizedBox(height: 20),
-              const Text("Options (Select the correct answer):", style: TextStyle(fontWeight: FontWeight.bold)),
-              ...List.generate(4, (index) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: TextFormField(
-                  controller: _optionControllers[index],
-                  decoration: InputDecoration(
-                    labelText: "Option ${index + 1}",
-                    border: const OutlineInputBorder(),
-                    prefixIcon: Radio<int>(
-                      value: index,
-                      groupValue: _correctIndex,
-                      onChanged: (val) => setState(() => _correctIndex = val!),
-                    ),
-                  ),
-                  validator: (v) => v!.isEmpty ? "Enter option" : null,
-                ),
-              )),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _explanationController,
-                decoration: const InputDecoration(labelText: "Explanation", border: OutlineInputBorder()),
-                maxLines: 2,
-                validator: (v) => v!.isEmpty ? "Enter explanation" : null,
-              ),
-              const SizedBox(height: 30),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  backgroundColor: Colors.blueAccent,
-                  foregroundColor: Colors.white
-                ),
-                onPressed: _isSaving ? null : _saveToFirestore,
-                child: _isSaving 
-                  ? const CircularProgressIndicator(color: Colors.white) 
-                  : const Text("Save to Firebase", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
+            TextField(controller: _questionController, decoration: const InputDecoration(labelText: "Question")),
+            TextField(controller: _imageUrlController, decoration: const InputDecoration(labelText: "Image URL (Optional)")),
+            ...List.generate(4, (i) => Row(children: [
+              Radio(value: i, groupValue: _correctAnswerIndex, onChanged: (v) => setState(() => _correctAnswerIndex = v as int)),
+              Expanded(child: TextField(controller: _optionControllers[i], decoration: InputDecoration(labelText: "Option ${i+1}"))),
+            ])),
+            ElevatedButton(onPressed: _addQuestion, child: const Text("Add Question")),
+          ],
         ),
       ),
     );

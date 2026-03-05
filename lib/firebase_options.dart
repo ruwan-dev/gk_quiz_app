@@ -85,4 +85,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'sl-gk-7c93b.firebasestorage.app',
     measurementId: 'G-2T77ET2DVD',
   );
+
 }

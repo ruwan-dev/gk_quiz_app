@@ -1,30 +1,31 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const Color vistaBlue = Color(0xFF005493);
-  static const Color vistaLightBlue = Color(0xFF00A3E0);
-  static const Color vistaDeepDark = Color(0xFF001A33);
+  // Dark mode සඳහා වර්ණ
+  static const Color darkBg = Color(0xFF0F172A); // තද අළු/නිල්
+  static const Color darkCard = Color(0xFF1E293B); // කාඩ්පත් සඳහා වර්ණය
+  static const Color neonBlue = Color(0xFF38BDF8); // ප්‍රධාන ලා නිල් පැහැය
+  static const Color cyanAccent = Color(0xFF22D3EE); // උප වර්ණය
   
-  static const Color glassBase = Color(0x22FFFFFF); 
-  static const Color glassBorder = Color(0x44FFFFFF); 
+  static const Color glassBorder = Color(0x33FFFFFF); 
 
-  static ThemeData get lightTheme {
+  static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
-      // Removed the custom Sinhala fontFamily to use system default
+      brightness: Brightness.dark,
       
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: vistaBlue,
-        primary: vistaBlue,
-        secondary: vistaLightBlue,
+      colorScheme: const ColorScheme.dark(
+        primary: neonBlue,
+        secondary: cyanAccent,
+        background: darkBg,
+        surface: darkCard,
       ),
 
       appBarTheme: const AppBarTheme(
-        backgroundColor: vistaDeepDark,
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
-        elevation: 15,
+        elevation: 0,
         centerTitle: true,
-        shadowColor: Colors.black45,
         titleTextStyle: TextStyle(
           fontSize: 22, 
           fontWeight: FontWeight.bold, 
@@ -34,29 +35,25 @@ class AppTheme {
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: vistaBlue,
-          foregroundColor: Colors.white,
-          elevation: 10,
-          shadowColor: vistaLightBlue.withOpacity(0.5),
+          backgroundColor: neonBlue,
+          foregroundColor: Colors.black87, 
+          elevation: 8,
+          shadowColor: neonBlue.withOpacity(0.5),
           padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 25),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
-            side: const BorderSide(
-              color: Color(0x66FFFFFF), 
-              width: 1.5,
-            ),
           ),
           textStyle: const TextStyle(
             fontSize: 17, 
-            fontWeight: FontWeight.w600
+            fontWeight: FontWeight.w900
           ),
         ),
       ),
 
       cardTheme: CardThemeData(
-        color: Colors.white.withOpacity(0.85), 
-        elevation: 20,
-        shadowColor: Colors.black38,
+        color: darkCard.withOpacity(0.85), 
+        elevation: 15,
+        shadowColor: Colors.black,
         margin: const EdgeInsets.all(12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(22),
@@ -67,11 +64,11 @@ class AppTheme {
       textTheme: const TextTheme(
         headlineMedium: TextStyle(
           fontWeight: FontWeight.w900,
-          color: vistaDeepDark,
+          color: Colors.white,
           fontSize: 24,
-          shadows: [Shadow(color: Colors.black12, blurRadius: 2, offset: Offset(1, 1))],
         ),
-        bodyLarge: TextStyle(fontSize: 18, color: Colors.black87, height: 1.4),
+        bodyLarge: TextStyle(fontSize: 18, color: Colors.white70, height: 1.4),
+        bodyMedium: TextStyle(color: Colors.white60),
         labelLarge: TextStyle(fontWeight: FontWeight.bold),
       ),
     );

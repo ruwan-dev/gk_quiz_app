@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
+
 import 'firebase_options.dart';
 import 'providers/quiz_provider.dart';
 import 'screens/home_screen.dart';
+import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
@@ -28,14 +31,38 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'GK Quiz App',
-      theme: AppTheme.lightTheme,
-      home: const MainBackgroundWrapper(child: HomeScreen()),
+      // Title eka methanin ain kala
+      theme: AppTheme.darkTheme, 
+      home: const AuthGate(), 
     );
   }
 }
 
-// Vista Aero Background Gradient
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: Color(0xFF0F172A),
+            body: Center(child: CircularProgressIndicator(color: Colors.white)),
+          );
+        }
+
+        if (snapshot.hasData) {
+          return const MainBackgroundWrapper(child: HomeScreen());
+        }
+
+        return const MainBackgroundWrapper(child: LoginScreen());
+      },
+    );
+  }
+}
+
 class MainBackgroundWrapper extends StatelessWidget {
   final Widget child;
   const MainBackgroundWrapper({super.key, required this.child});
@@ -45,9 +72,12 @@ class MainBackgroundWrapper extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF00A3E0), Color(0xFF005493), Color(0xFF001A33)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF0F172A), 
+            Color(0xFF020617), 
+          ],
         ),
       ),
       child: child,
