@@ -14,7 +14,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final AuthService _auth = AuthService();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLogin = true; // True = Login mode, False = Register mode
+  bool _isLogin = true; 
   bool _isLoading = false;
 
   void _submit() async {
@@ -23,7 +23,9 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please fill all fields")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill all fields"), backgroundColor: Colors.redAccent)
+      );
       setState(() => _isLoading = false);
       return;
     }
@@ -35,16 +37,17 @@ class _LoginScreenState extends State<LoginScreen> {
       result = await _auth.registerWithEmail(email, password);
     }
 
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
 
     if (result == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error: Check your email and password")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Authentication Failed. Please check your credentials."), backgroundColor: Colors.redAccent)
+      );
     } else {
-      // Login/Register Success වුණාම Home එකට යනවා
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const MainBackgroundWrapper(child: HomeScreen())),
+          MaterialPageRoute(builder: (context) => MainBackgroundWrapper(child: const HomeScreen())),
         );
       }
     }
@@ -57,50 +60,114 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
-          child: Card(
-            color: Colors.white.withOpacity(0.9),
-            elevation: 15,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _isLogin ? "Welcome Back" : "Create Account",
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF001A33)),
+          child: Container(
+            padding: const EdgeInsets.all(24.0),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05), // 🚀 Glassy Effect
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Logo or Icon
+                Container(
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF38BDF8).withOpacity(0.1),
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(labelText: "Email", border: OutlineInputBorder(), prefixIcon: Icon(Icons.email)),
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  const SizedBox(height: 15),
-                  TextField(
-                    controller: _passwordController,
-                    decoration: const InputDecoration(labelText: "Password", border: OutlineInputBorder(), prefixIcon: Icon(Icons.lock)),
-                    obscureText: true,
-                  ),
-                  const SizedBox(height: 25),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _submit,
-                      child: _isLoading 
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Text(_isLogin ? "Sign In" : "Register", style: const TextStyle(fontSize: 18)),
+                  child: const Icon(Icons.quiz_rounded, size: 50, color: Color(0xFF38BDF8)),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  _isLogin ? "Welcome Back" : "Create Account",
+                  style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _isLogin ? "Sign in to continue your progress" : "Join with us to start your journey",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 14, color: Colors.white38),
+                ),
+                const SizedBox(height: 30),
+
+                // 📧 Email Field
+                _buildTextField(
+                  controller: _emailController,
+                  label: "Email",
+                  icon: Icons.email_outlined,
+                  type: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 20),
+
+                // 🔑 Password Field
+                _buildTextField(
+                  controller: _passwordController,
+                  label: "Password",
+                  icon: Icons.lock_outline,
+                  isObscure: true,
+                ),
+                const SizedBox(height: 30),
+
+                // 🚀 Submit Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF38BDF8),
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      elevation: 0,
                     ),
+                    child: _isLoading 
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                      : Text(_isLogin ? "Sign In" : "Register", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
-                  TextButton(
-                    onPressed: () => setState(() => _isLogin = !_isLogin),
-                    child: Text(_isLogin ? "Need an account? Register" : "Have an account? Sign In"),
+                ),
+
+                const SizedBox(height: 15),
+
+                // 🔄 Toggle Login/Register
+                TextButton(
+                  onPressed: () => setState(() => _isLogin = !_isLogin),
+                  child: Text(
+                    _isLogin ? "Don't have an account? Register" : "Already have an account? Sign In",
+                    style: const TextStyle(color: Color(0xFF38BDF8)),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // 🛠️ Reusable Text Field (අකුරු පේන විදියට හදලා තියෙන්නේ)
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool isObscure = false,
+    TextInputType type = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: isObscure,
+      keyboardType: type,
+      style: const TextStyle(color: Colors.white), // 🚀 ලියන අකුරු සුදු පාටින් පේනවා
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.white38),
+        floatingLabelStyle: const TextStyle(color: Color(0xFF38BDF8)),
+        prefixIcon: Icon(icon, color: Colors.white38, size: 20),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: Colors.white10)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: Color(0xFF38BDF8))),
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.03),
       ),
     );
   }

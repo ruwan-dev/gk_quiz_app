@@ -172,7 +172,7 @@ class _ResultScreenState extends State<ResultScreen> {
                             onPressed: () {
                               Navigator.pushAndRemoveUntil(
                                 context,
-                                MaterialPageRoute(builder: (context) => const MainBackgroundWrapper(child: HomeScreen())),
+                                MaterialPageRoute(builder: (context) =>  MainBackgroundWrapper(child: HomeScreen())),
                                 (route) => false,
                               );
                             },
