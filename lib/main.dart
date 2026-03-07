@@ -1,28 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:gk_quiz_app/screens/home_screen.dart';
 import 'package:provider/provider.dart';
-
 import 'firebase_options.dart';
-import 'providers/quiz_provider.dart';
-
-import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
+import 'screens/login_screen.dart';
+import 'providers/quiz_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => QuizProvider()),
-      ],
-      child: const MyApp(),
-    ),
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -30,40 +17,22 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      // Title eka methanin ain kala
-      theme: AppTheme.darkTheme, 
-      home: const AuthGate(), 
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => QuizProvider()),
+      ],
+      child: MaterialApp(
+        title: 'SL Exam Guide',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.darkTheme,
+        // Wraps every screen with the consistent gradient background
+        home: const MainBackgroundWrapper(child: LoginScreen()),
+      ),
     );
   }
 }
 
-class AuthGate extends StatelessWidget {
-  const AuthGate({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            backgroundColor: Color(0xFF0F172A),
-            body: Center(child: CircularProgressIndicator(color: Colors.white)),
-          );
-        }
-
-        if (snapshot.hasData) {
-          return  MainBackgroundWrapper(child: HomeScreen());
-        }
-
-        return  MainBackgroundWrapper(child: LoginScreen());
-      },
-    );
-  }
-}
-
+// The background gradient container used across the app
 class MainBackgroundWrapper extends StatelessWidget {
   final Widget child;
   const MainBackgroundWrapper({super.key, required this.child});
@@ -76,9 +45,11 @@ class MainBackgroundWrapper extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF0F172A), 
-            Color(0xFF020617), 
+            AppTheme.color1,
+            AppTheme.color2,
+            AppTheme.color3,
           ],
+          stops: [0.0, 0.5, 1.0],
         ),
       ),
       child: child,

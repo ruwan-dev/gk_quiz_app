@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:math' as math;
 import '../utils/icon_helper.dart';
 import 'papers_screen.dart';
 import 'admin_panel.dart';
@@ -8,6 +9,7 @@ import 'login_screen.dart';
 import 'leaderboard_screen.dart';
 import 'profile_screen.dart'; 
 import '../main.dart';
+import '../theme/app_theme.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,23 +30,16 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
   }
 
-  // 🚀 යාවත්කාලීන කළ Navigation Logic එක
   void _onItemTapped(int index, bool isAdmin, bool isDeactivated) {
     int logoutIndex = isAdmin ? 4 : 3;
-
-    // 1. මුලින්ම බලනවා එබුවේ Logout බටන් එකද කියලා
     if (index == logoutIndex) {
       _showLogoutDialog();
-      return; // Logout dialog එක පෙන්නලා මෙතනින් නවතිනවා
+      return;
     }
-
-    // 2. Logout නෙවෙයි නම් සහ යූසර් Deactivate වෙලා නම් අනිත් Tabs වලට යන්න දෙන්නේ නැහැ
     if (isDeactivated) {
       _showDeactivatedSnackBar();
       return;
     }
-
-    // 3. සාමාන්‍ය යූසර් කෙනෙක් නම් Tab එක මාරු කරනවා
     setState(() {
       _selectedIndex = index;
     });
@@ -94,7 +89,6 @@ class _HomeScreenState extends State<HomeScreen> {
       stream: FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).snapshots(),
       builder: (context, snapshot) {
         bool isDeactivated = false;
-        
         if (snapshot.hasData && snapshot.data!.exists) {
           final data = snapshot.data!.data() as Map<String, dynamic>?;
           isDeactivated = data?['isDeactivated'] ?? false;
@@ -169,7 +163,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// 🏠 HomeTab (මෙහි වෙනසක් අවශ්‍ය නැත)
 class HomeTab extends StatelessWidget {
   const HomeTab({super.key});
 
@@ -232,7 +225,7 @@ class HomeTab extends StatelessWidget {
           ),
           const SizedBox(height: 40),
           const Text("Select Category", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 30),
+          const SizedBox(height: 20),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance.collection('categories').orderBy('createdAt', descending: false).snapshots(),
@@ -240,15 +233,21 @@ class HomeTab extends StatelessWidget {
                 if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text("No categories found", style: TextStyle(color: Colors.white70)));
 
-                return GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2, crossAxisSpacing: 15, mainAxisSpacing: 15, childAspectRatio: 1.1,
-                  ),
+                return ListView.builder(
+                  padding: const EdgeInsets.only(bottom: 20),
                   itemCount: snapshot.data!.docs.length,
                   itemBuilder: (context, index) {
                     final data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
                     IconData categoryIcon = IconHelper.getIcon(data['iconKey']);
-                    return _buildCategoryCard(context, data['name'], categoryIcon, const Color(0xFF38BDF8), data['id']);
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 15),
+                      child: AnimatedCategoryCard(
+                        title: data['name'],
+                        icon: categoryIcon,
+                        iconColor: const Color(0xFF38BDF8),
+                        catId: data['id'],
+                      ),
+                    );
                   },
                 );
               },
@@ -258,25 +257,169 @@ class HomeTab extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildCategoryCard(BuildContext context, String title, IconData icon, Color iconColor, String catId) {
-    return Material(
-      color: Colors.white.withOpacity(0.05),
-      borderRadius: BorderRadius.circular(25),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(25),
-        onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => MainBackgroundWrapper(child: PapersScreen(categoryId: catId, categoryName: title))));
+// 🚀 Animated Category Card with Moving Gradient Border
+class AnimatedCategoryCard extends StatefulWidget {
+  final String title;
+  final IconData icon;
+  final Color iconColor;
+  final String catId;
+
+  const AnimatedCategoryCard({
+    super.key,
+    required this.title,
+    required this.icon,
+    required this.iconColor,
+    required this.catId,
+  });
+
+  @override
+  State<AnimatedCategoryCard> createState() => _AnimatedCategoryCardState();
+}
+
+class _AnimatedCategoryCardState extends State<AnimatedCategoryCard> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  bool _isHovered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    );
+    // Gradient rotation continuous loop
+    _controller.repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return CustomPaint(
+            painter: _isHovered ? GradientBorderPainter(
+              angle: _controller.value * 2 * math.pi,
+              strokeWidth: 2.5,
+              radius: 20,
+              gradientColors: [
+                const Color(0xFF38BDF8), // Blue
+                const Color(0xFFFF4757), // Red
+                const Color(0xFF38BDF8), // Blue
+              ],
+            ) : null,
+            child: child,
+          );
         },
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: iconColor.withOpacity(0.1), shape: BoxShape.circle), child: Icon(icon, size: 35, color: iconColor)),
-            const SizedBox(height: 12),
-            Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-          ],
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: _isHovered ? Colors.white.withOpacity(0.12) : Colors.white.withOpacity(0.04),
+            border: Border.all(
+              color: _isHovered ? Colors.transparent : Colors.white12,
+              width: 1.0,
+            ),
+            boxShadow: [
+              if (_isHovered)
+                BoxShadow(
+                  color: const Color(0xFF38BDF8).withOpacity(0.15),
+                  blurRadius: 20,
+                  spreadRadius: -2,
+                ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () {
+                Navigator.push(
+                  context, 
+                  MaterialPageRoute(
+                    builder: (context) => MainBackgroundWrapper(
+                      child: PapersScreen(categoryId: widget.catId, categoryName: widget.title)
+                    )
+                  )
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10), 
+                      decoration: BoxDecoration(
+                        color: _isHovered ? widget.iconColor.withOpacity(0.25) : widget.iconColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(widget.icon, size: 28, color: widget.iconColor),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Text(
+                        widget.title, 
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      transform: Matrix4.translationValues(_isHovered ? 5 : 0, 0, 0),
+                      child: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white24),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
+}
+
+// 🎨 Custom Painter for the Rotating Gradient Border
+class GradientBorderPainter extends CustomPainter {
+  final double angle;
+  final double strokeWidth;
+  final double radius;
+  final List<Color> gradientColors;
+
+  GradientBorderPainter({
+    required this.angle,
+    required this.strokeWidth,
+    required this.radius,
+    required this.gradientColors,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+    final rrect = RRect.fromRectAndRadius(rect, Radius.circular(radius));
+    
+    final paint = Paint()
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke
+      ..shader = SweepGradient(
+        colors: gradientColors,
+        transform: GradientRotation(angle),
+      ).createShader(rect);
+
+    canvas.drawRRect(rrect, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant GradientBorderPainter oldDelegate) => 
+      oldDelegate.angle != angle;
 }
