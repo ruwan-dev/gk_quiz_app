@@ -257,7 +257,7 @@ class HomeTab extends StatelessWidget {
                     GestureDetector(
                       onTap: () => _showPremiumPopup(context),
                       child: Container(
-                        padding: const EdgeInsets.all(15),
+                        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [const Color(0xFF10B981).withOpacity(0.15), Colors.amber.withOpacity(0.08)],
@@ -283,7 +283,7 @@ class HomeTab extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text("Upgrade to Premium", style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 15)),
-                                  SizedBox(height: 2),
+                                  SizedBox(height: 6),
                                   Text("Tap here to unlock all features", style: TextStyle(color: Colors.white60, fontSize: 12)),
                                 ],
                               ),
@@ -319,6 +319,18 @@ class HomeTab extends StatelessWidget {
                   return true;
                 }).toList();
 
+                visibleCategories.sort((a, b) {
+                  final dataA = a.data() as Map<String, dynamic>;
+                  final dataB = b.data() as Map<String, dynamic>;
+                  
+                  bool isNewA = dataA.containsKey('isNew') ? dataA['isNew'] : false;
+                  bool isNewB = dataB.containsKey('isNew') ? dataB['isNew'] : false;
+
+                  if (isNewA && !isNewB) return -1;
+                  if (!isNewA && isNewB) return 1;
+                  return 0; 
+                });
+
                 if (visibleCategories.isEmpty) {
                   return const Center(child: Text("No categories available", style: TextStyle(color: Colors.white70)));
                 }
@@ -329,6 +341,10 @@ class HomeTab extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final data = visibleCategories[index].data() as Map<String, dynamic>;
                     IconData categoryIcon = IconHelper.getIcon(data['iconKey']);
+                    
+                    bool isNew = data.containsKey('isNew') ? data['isNew'] : false;
+                    bool isDisabled = data.containsKey('isDisabled') ? data['isDisabled'] : false;
+
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 15),
                       child: AnimatedCategoryCard(
@@ -336,6 +352,8 @@ class HomeTab extends StatelessWidget {
                         icon: categoryIcon,
                         iconColor: const Color(0xFF38BDF8),
                         catId: data['id'],
+                        isNew: isNew,
+                        isDisabled: isDisabled,
                       ),
                     );
                   },
@@ -349,7 +367,6 @@ class HomeTab extends StatelessWidget {
   }
 }
 
-// 🎓 Animated Premium Popup Widget
 class AnimatedPremiumPopup extends StatefulWidget {
   const AnimatedPremiumPopup({super.key});
 
@@ -417,13 +434,14 @@ class _AnimatedPremiumPopupState extends State<AnimatedPremiumPopup> with Single
               const SizedBox(height: 15),
               const Text(
                 "Unlock Premium!",
-                style: TextStyle(color: Colors.amber, fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                "Pahatha bank account ekata mudal gewa, receipt eka WhatsApp karanna. App eke features okkoma unlock karaganna!",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
+                style: TextStyle(color: Colors.amber, fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                "Please deposit the fee to the bank account below and WhatsApp the payment receipt to unlock all app features.\n\nපහත බැංකු ගිණුමට මුදල් ගෙවා, ගෙවීම් ලදුපත WhatsApp කරන්න. ඉන්පසු ඇප් එකේ සියලුම පහසුකම් ලබාගත හැක!",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.5),
               ),
               const SizedBox(height: 20),
               Container(
@@ -437,9 +455,9 @@ class _AnimatedPremiumPopupState extends State<AnimatedPremiumPopup> with Single
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Bank: Bank of Ceylon (BOC)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    Text("Bank: Bank of Ceylon (BOC) / ලංකා බැංකුව", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                     SizedBox(height: 5),
-                    Text("Name: GK Quiz App", style: TextStyle(color: Colors.white70)),
+                    Text("Name: GK Quiz App", style: TextStyle(color: Colors.white70, fontSize: 13)),
                     SizedBox(height: 5),
                     Text("Account No: 1234567890", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2)),
                   ],
@@ -472,7 +490,7 @@ class _AnimatedPremiumPopupState extends State<AnimatedPremiumPopup> with Single
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("Got it!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  child: const Text("Got it!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                 ),
               )
             ],
@@ -483,12 +501,13 @@ class _AnimatedPremiumPopupState extends State<AnimatedPremiumPopup> with Single
   }
 }
 
-// 🚀 Animated Category Card with Moving Gradient Border
 class AnimatedCategoryCard extends StatefulWidget {
   final String title;
   final IconData icon;
   final Color iconColor;
   final String catId;
+  final bool isNew;
+  final bool isDisabled;
 
   const AnimatedCategoryCard({
     super.key,
@@ -496,6 +515,8 @@ class AnimatedCategoryCard extends StatefulWidget {
     required this.icon,
     required this.iconColor,
     required this.catId,
+    this.isNew = false,
+    this.isDisabled = false,
   });
 
   @override
@@ -531,7 +552,7 @@ class _AnimatedCategoryCardState extends State<AnimatedCategoryCard> with Single
         animation: _controller,
         builder: (context, child) {
           return CustomPaint(
-            painter: _isHovered ? GradientBorderPainter(
+            painter: _isHovered && !widget.isDisabled ? GradientBorderPainter(
               angle: _controller.value * 2 * math.pi,
               strokeWidth: 2.5,
               radius: 20,
@@ -548,13 +569,13 @@ class _AnimatedCategoryCardState extends State<AnimatedCategoryCard> with Single
           duration: const Duration(milliseconds: 300),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            color: _isHovered ? Colors.white.withOpacity(0.12) : Colors.white.withOpacity(0.04),
+            color: _isHovered && !widget.isDisabled ? Colors.white.withOpacity(0.12) : Colors.white.withOpacity(0.04),
             border: Border.all(
-              color: _isHovered ? Colors.transparent : Colors.white12,
+              color: _isHovered && !widget.isDisabled ? Colors.transparent : Colors.white12,
               width: 1.0,
             ),
             boxShadow: [
-              if (_isHovered)
+              if (_isHovered && !widget.isDisabled)
                 BoxShadow(
                   color: const Color(0xFF38BDF8).withOpacity(0.15),
                   blurRadius: 20,
@@ -568,14 +589,31 @@ class _AnimatedCategoryCardState extends State<AnimatedCategoryCard> with Single
             child: InkWell(
               borderRadius: BorderRadius.circular(20),
               onTap: () {
-                Navigator.push(
-                  context, 
-                  MaterialPageRoute(
-                    builder: (context) => MainBackgroundWrapper(
-                      child: PapersScreen(categoryId: widget.catId, categoryName: widget.title)
+                if (widget.isDisabled) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: const [
+                          Icon(Icons.info_outline, color: Colors.white),
+                          SizedBox(width: 10),
+                          Text("Available Soon!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      backgroundColor: Colors.orangeAccent,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     )
-                  )
-                );
+                  );
+                } else {
+                  Navigator.push(
+                    context, 
+                    MaterialPageRoute(
+                      builder: (context) => MainBackgroundWrapper(
+                        child: PapersScreen(categoryId: widget.catId, categoryName: widget.title)
+                      )
+                    )
+                  );
+                }
               },
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -584,22 +622,45 @@ class _AnimatedCategoryCardState extends State<AnimatedCategoryCard> with Single
                     Container(
                       padding: const EdgeInsets.all(10), 
                       decoration: BoxDecoration(
-                        color: _isHovered ? widget.iconColor.withOpacity(0.25) : widget.iconColor.withOpacity(0.1),
+                        color: _isHovered && !widget.isDisabled ? widget.iconColor.withOpacity(0.25) : widget.iconColor.withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(widget.icon, size: 28, color: widget.iconColor),
+                      child: Icon(widget.icon, size: 28, color: widget.isDisabled ? Colors.white38 : widget.iconColor),
                     ),
                     const SizedBox(width: 20),
                     Expanded(
-                      child: Text(
-                        widget.title, 
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                      child: Row(
+                        children: [
+                          Text(
+                            widget.title, 
+                            style: TextStyle(
+                              fontSize: 18, 
+                              fontWeight: FontWeight.bold, 
+                              color: widget.isDisabled ? Colors.white54 : Colors.white
+                            ),
+                          ),
+                          if (widget.isNew) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.redAccent,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Text("NEW", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
-                      transform: Matrix4.translationValues(_isHovered ? 5 : 0, 0, 0),
-                      child: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white24),
+                      transform: Matrix4.translationValues(_isHovered && !widget.isDisabled ? 5 : 0, 0, 0),
+                      child: Icon(
+                        widget.isDisabled ? Icons.lock : Icons.arrow_forward_ios, 
+                        size: widget.isDisabled ? 20 : 16, 
+                        color: widget.isDisabled ? Colors.orangeAccent.withOpacity(0.8) : Colors.white24
+                      ),
                     ),
                   ],
                 ),
@@ -612,7 +673,6 @@ class _AnimatedCategoryCardState extends State<AnimatedCategoryCard> with Single
   }
 }
 
-// 🎨 Custom Painter for the Rotating Gradient Border
 class GradientBorderPainter extends CustomPainter {
   final double angle;
   final double strokeWidth;

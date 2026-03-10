@@ -14,6 +14,7 @@ class _AdminPanelState extends State<AdminPanel> {
   final TextEditingController _catNameController = TextEditingController();
   final TextEditingController _catIdController = TextEditingController();
   final TextEditingController _paperIdController = TextEditingController();
+  final TextEditingController _paperTitleController = TextEditingController(); // 🔴 අලුත් Paper Title Box එක
   final TextEditingController _questionController = TextEditingController();
   final List<TextEditingController> _optionControllers = List.generate(4, (_) => TextEditingController());
   final TextEditingController _explanationController = TextEditingController();
@@ -55,6 +56,8 @@ class _AdminPanelState extends State<AdminPanel> {
         'iconKey': _selectedIconKey, 
         'createdAt': Timestamp.now(),
         'isVisible': true, 
+        'isNew': false,
+        'isDisabled': false,
       });
       _catNameController.clear(); _catIdController.clear(); _showSnackBar("Category Added!");
     }
@@ -69,12 +72,18 @@ class _AdminPanelState extends State<AdminPanel> {
 
   void _addPaper() async {
     if (_selectedCatForPaper != null && _paperIdController.text.isNotEmpty) {
+      // 🔴 සිංහල Title එකක් දීලා තියෙනවා නම් ඒක ගන්නවා, නැත්නම් ID එක ගන්නවා.
+      String title = _paperTitleController.text.isNotEmpty ? _paperTitleController.text : _paperIdController.text.toUpperCase();
+      
       await FirebaseFirestore.instance.collection('categories').doc(_selectedCatForPaper).collection('papers').doc(_paperIdController.text).set({
-        'title': _paperIdController.text.toUpperCase(), 
+        'title': title, 
         'createdAt': Timestamp.now(),
         'isVisible': true, 
+        'isPremium': false,
       });
-      _paperIdController.clear(); _showSnackBar("Paper Added!");
+      _paperIdController.clear(); 
+      _paperTitleController.clear(); // Clear the title box
+      _showSnackBar("Paper Added!");
     }
   }
 
@@ -121,6 +130,16 @@ class _AdminPanelState extends State<AdminPanel> {
         'isPremium': isPremium,
       });
       _showSnackBar("User premium status updated!");
+    }
+  }
+
+  void _updatePaperPremiumStatus(String catId, String paperId, bool isPremium) async {
+    String action = isPremium ? "Make Premium" : "Remove Premium";
+    if (await _confirm(action, "Do you want to $action for this paper?")) {
+      await FirebaseFirestore.instance.collection('categories').doc(catId).collection('papers').doc(paperId).update({
+        'isPremium': isPremium,
+      });
+      _showSnackBar("Paper premium status updated!");
     }
   }
 
@@ -186,7 +205,8 @@ class _AdminPanelState extends State<AdminPanel> {
 
   Widget _buildAddPaperTab() => _buildGlassCard("Add New Paper", Colors.orangeAccent, [
     _buildCatDrop((v) => setState(() => _selectedCatForPaper = v), _selectedCatForPaper),
-    _buildTextField(_paperIdController, "Paper ID"),
+    _buildTextField(_paperIdController, "Paper ID (Ex: paper_1)"),
+    _buildTextField(_paperTitleController, "Paper Name (Sinhala/English)"), // 🔴 අලුත් Box එක මෙතන
     _buildButton(_addPaper, "Save Paper", Colors.orange.shade700),
   ]);
 
@@ -250,11 +270,9 @@ class _AdminPanelState extends State<AdminPanel> {
                     : "Active${isPremium ? ' • Premium' : ''} • $name • ${data['totalScore'] ?? 0} XP", 
                   style: TextStyle(color: deact ? Colors.redAccent : (isPremium ? Colors.amber : Colors.cyanAccent), fontSize: 11)),
                 
-                // Toggle Switches වෙනුවට අලුත් Icons ටික
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Premium Toggle Icon
                     IconButton(
                       icon: Icon(
                         isPremium ? Icons.star : Icons.star_border,
@@ -264,7 +282,6 @@ class _AdminPanelState extends State<AdminPanel> {
                       tooltip: isPremium ? "Remove Premium" : "Make Premium",
                       onPressed: () => _updateUserPremiumStatus(snap.data!.docs[i].id, !isPremium),
                     ),
-                    // Active/Deactivate Toggle Icon
                     IconButton(
                       icon: Icon(
                         deact ? Icons.block : Icons.check_circle,
@@ -324,12 +341,29 @@ class _AdminPanelState extends State<AdminPanel> {
         children: snap.data!.docs.map((d) {
           var data = d.data() as Map<String, dynamic>;
           bool isVisible = data.containsKey('isVisible') ? data['isVisible'] : true;
+          bool isNew = data.containsKey('isNew') ? data['isNew'] : false;
+          bool isDisabled = data.containsKey('isDisabled') ? data['isDisabled'] : false;
+
           return ListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(data['name'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 14)), 
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                IconButton(
+                  icon: Icon(isNew ? Icons.new_releases : Icons.new_releases_outlined, color: isNew ? Colors.redAccent : Colors.white38, size: 22),
+                  tooltip: isNew ? "Remove NEW Label" : "Add NEW Label",
+                  onPressed: () {
+                    FirebaseFirestore.instance.collection('categories').doc(d.id).update({'isNew': !isNew});
+                  },
+                ),
+                IconButton(
+                  icon: Icon(isDisabled ? Icons.lock : Icons.lock_open, color: isDisabled ? Colors.orangeAccent : Colors.white38, size: 22),
+                  tooltip: isDisabled ? "Enable Category" : "Disable Category",
+                  onPressed: () {
+                    FirebaseFirestore.instance.collection('categories').doc(d.id).update({'isDisabled': !isDisabled});
+                  },
+                ),
                 Switch(
                   value: isVisible,
                   activeColor: Colors.cyanAccent,
@@ -353,12 +387,23 @@ class _AdminPanelState extends State<AdminPanel> {
         children: snap.data!.docs.map((d) {
           var data = d.data() as Map<String, dynamic>;
           bool isVisible = data.containsKey('isVisible') ? data['isVisible'] : true;
+          bool isPremium = data.containsKey('isPremium') ? data['isPremium'] : false;
+          
           return ListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(data['title'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 14)), 
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                IconButton(
+                  icon: Icon(
+                    isPremium ? Icons.star : Icons.star_border,
+                    color: isPremium ? Colors.amber : Colors.white38,
+                    size: 24,
+                  ),
+                  tooltip: isPremium ? "Remove Premium" : "Make Premium",
+                  onPressed: () => _updatePaperPremiumStatus(catId, d.id, !isPremium),
+                ),
                 Switch(
                   value: isVisible,
                   activeColor: Colors.orangeAccent,
