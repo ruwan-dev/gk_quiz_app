@@ -28,6 +28,7 @@ class PapersScreen extends StatelessWidget {
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(
+        // අර .where කෑල්ල අයින් කරලා කලින් විදිහටම ගත්තා
         stream: FirebaseFirestore.instance
             .collection('categories')
             .doc(categoryId)
@@ -37,7 +38,18 @@ class PapersScreen extends StatelessWidget {
           if (snapshot.hasError) return const Center(child: Text("Error loading papers", style: TextStyle(color: Colors.white)));
           if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Color(0xFF38BDF8)));
           
-          final docs = snapshot.data!.docs;
+          final allDocs = snapshot.data!.docs;
+          
+          // මෙතනදි තමයි Filter කරන්නේ (code එක ඇතුළෙදි)
+          final docs = allDocs.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            // isVisible false වෙලා තියෙන ඒවා විතරක් පෙන්නන්නේ නෑ. පරණ ඒවා පෙන්වනවා.
+            if (data.containsKey('isVisible') && data['isVisible'] == false) {
+              return false;
+            }
+            return true;
+          }).toList();
+
           if (docs.isEmpty) {
             return const Center(
               child: Text("No papers found.", style: TextStyle(color: Colors.white, fontSize: 16)),

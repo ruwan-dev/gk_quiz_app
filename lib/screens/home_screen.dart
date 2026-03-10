@@ -173,6 +173,15 @@ class HomeTab extends StatelessWidget {
     return 'Good Evening';
   }
 
+  void _showPremiumPopup(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return const AnimatedPremiumPopup();
+      }
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final User? currentUser = FirebaseAuth.instance.currentUser;
@@ -190,54 +199,135 @@ class HomeTab extends StatelessWidget {
               var userData = snapshot.data!.data() as Map<String, dynamic>?;
               String name = userData?['name'] ?? currentUser?.email?.split('@')[0] ?? 'User';
               int score = userData?['totalScore'] ?? 0;
+              bool isPremium = userData?['isPremium'] ?? false;
 
-              return Row(
+              return Column(
                 children: [
-                  CircleAvatar(
-                    radius: 25,
-                    backgroundColor: const Color(0xFF38BDF8).withOpacity(0.2),
-                    child: const Icon(Icons.person, color: Color(0xFF38BDF8), size: 30),
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 25,
+                        backgroundColor: isPremium 
+                            ? const Color(0xFF10B981).withOpacity(0.15) 
+                            : const Color(0xFF38BDF8).withOpacity(0.2),
+                        child: Icon(
+                          isPremium ? Icons.workspace_premium : Icons.person, 
+                          color: isPremium ? Colors.amber : const Color(0xFF38BDF8), 
+                          size: 30
+                        ),
+                      ),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(_getGreeting(), style: const TextStyle(color: Colors.white38, fontSize: 13)),
+                            Row(
+                              children: [
+                                Text(name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                                if (isPremium) ...[
+                                  const SizedBox(width: 6),
+                                  const Icon(Icons.verified, color: Color(0xFF10B981), size: 18), 
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isPremium ? const Color(0xFF10B981).withOpacity(0.08) : Colors.white.withOpacity(0.05), 
+                          borderRadius: BorderRadius.circular(20), 
+                          border: Border.all(color: isPremium ? Colors.amber.withOpacity(0.5) : Colors.white10)
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.auto_awesome, color: isPremium ? Colors.amber : Colors.amberAccent, size: 16),
+                            const SizedBox(width: 5),
+                            Text("$score XP", style: TextStyle(color: isPremium ? const Color(0xFF10B981) : Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(_getGreeting(), style: const TextStyle(color: Colors.white38, fontSize: 13)),
-                        Text(name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                      ],
+                  
+                  if (!isPremium) ...[
+                    const SizedBox(height: 25),
+                    GestureDetector(
+                      onTap: () => _showPremiumPopup(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(15),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [const Color(0xFF10B981).withOpacity(0.15), Colors.amber.withOpacity(0.08)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withOpacity(0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.workspace_premium, color: Colors.amber, size: 28),
+                            ),
+                            const SizedBox(width: 15),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text("Upgrade to Premium", style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 15)),
+                                  SizedBox(height: 2),
+                                  Text("Tap here to unlock all features", style: TextStyle(color: Colors.white60, fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.arrow_forward_ios, color: Color(0xFF10B981), size: 16),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white10)),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.auto_awesome, color: Colors.amber, size: 16),
-                        const SizedBox(width: 5),
-                        Text("$score XP", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                      ],
-                    ),
-                  ),
+                  ],
                 ],
               );
             },
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 35),
           const Text("Select Category", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
           const SizedBox(height: 20),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('categories').orderBy('createdAt', descending: false).snapshots(),
+              stream: FirebaseFirestore.instance
+                  .collection('categories')
+                  .orderBy('createdAt', descending: false)
+                  .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text("No categories found", style: TextStyle(color: Colors.white70)));
 
+                final visibleCategories = snapshot.data!.docs.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  if (data.containsKey('isVisible') && data['isVisible'] == false) {
+                    return false;
+                  }
+                  return true;
+                }).toList();
+
+                if (visibleCategories.isEmpty) {
+                  return const Center(child: Text("No categories available", style: TextStyle(color: Colors.white70)));
+                }
+
                 return ListView.builder(
                   padding: const EdgeInsets.only(bottom: 20),
-                  itemCount: snapshot.data!.docs.length,
+                  itemCount: visibleCategories.length,
                   itemBuilder: (context, index) {
-                    final data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
+                    final data = visibleCategories[index].data() as Map<String, dynamic>;
                     IconData categoryIcon = IconHelper.getIcon(data['iconKey']);
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 15),
@@ -254,6 +344,140 @@ class HomeTab extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// 🎓 Animated Premium Popup Widget
+class AnimatedPremiumPopup extends StatefulWidget {
+  const AnimatedPremiumPopup({super.key});
+
+  @override
+  State<AnimatedPremiumPopup> createState() => _AnimatedPremiumPopupState();
+}
+
+class _AnimatedPremiumPopupState extends State<AnimatedPremiumPopup> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return CustomPaint(
+            painter: GradientBorderPainter(
+              angle: _controller.value * 2 * math.pi,
+              strokeWidth: 3.0,
+              radius: 20,
+              gradientColors: const [
+                Color(0xFF10B981), // Green
+                Colors.amber,      // Gold
+                Color(0xFF059669), // Dark Green
+                Colors.amber,      // Gold
+              ],
+            ),
+            child: child,
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F172A), 
+            borderRadius: BorderRadius.circular(20), 
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.workspace_premium, color: Colors.amber, size: 50),
+              ),
+              const SizedBox(height: 15),
+              const Text(
+                "Unlock Premium!",
+                style: TextStyle(color: Colors.amber, fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                "Pahatha bank account ekata mudal gewa, receipt eka WhatsApp karanna. App eke features okkoma unlock karaganna!",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4)),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Bank: Bank of Ceylon (BOC)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    SizedBox(height: 5),
+                    Text("Name: GK Quiz App", style: TextStyle(color: Colors.white70)),
+                    SizedBox(height: 5),
+                    Text("Account No: 1234567890", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 15),
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.message, color: Color(0xFF10B981), size: 20),
+                    SizedBox(width: 8),
+                    Text("WhatsApp: 07X XXX XXXX", style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 25),
+              SizedBox(
+                width: double.infinity,
+                height: 45,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981), 
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Got it!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                ),
+              )
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -289,7 +513,6 @@ class _AnimatedCategoryCardState extends State<AnimatedCategoryCard> with Single
       vsync: this,
       duration: const Duration(seconds: 2),
     );
-    // Gradient rotation continuous loop
     _controller.repeat();
   }
 
@@ -313,9 +536,9 @@ class _AnimatedCategoryCardState extends State<AnimatedCategoryCard> with Single
               strokeWidth: 2.5,
               radius: 20,
               gradientColors: [
-                const Color(0xFF38BDF8), // Blue
-                const Color(0xFFFF4757), // Red
-                const Color(0xFF38BDF8), // Blue
+                const Color(0xFF38BDF8), 
+                const Color(0xFFFF4757), 
+                const Color(0xFF38BDF8), 
               ],
             ) : null,
             child: child,

@@ -50,16 +50,29 @@ class _AdminPanelState extends State<AdminPanel> {
   void _addCategory() async {
     if (_catNameController.text.isNotEmpty && _catIdController.text.isNotEmpty) {
       await FirebaseFirestore.instance.collection('categories').doc(_catIdController.text).set({
-        'name': _catNameController.text, 'id': _catIdController.text, 'iconKey': _selectedIconKey, 'createdAt': Timestamp.now(),
+        'name': _catNameController.text, 
+        'id': _catIdController.text, 
+        'iconKey': _selectedIconKey, 
+        'createdAt': Timestamp.now(),
+        'isVisible': true, 
       });
       _catNameController.clear(); _catIdController.clear(); _showSnackBar("Category Added!");
+    }
+  }
+
+  void _deleteCategory(String catId) async {
+    if (await _confirm("Delete Category", "Delete this category?")) {
+      await FirebaseFirestore.instance.collection('categories').doc(catId).delete();
+      _showSnackBar("Category Deleted!");
     }
   }
 
   void _addPaper() async {
     if (_selectedCatForPaper != null && _paperIdController.text.isNotEmpty) {
       await FirebaseFirestore.instance.collection('categories').doc(_selectedCatForPaper).collection('papers').doc(_paperIdController.text).set({
-        'title': _paperIdController.text.toUpperCase(), 'createdAt': Timestamp.now(),
+        'title': _paperIdController.text.toUpperCase(), 
+        'createdAt': Timestamp.now(),
+        'isVisible': true, 
       });
       _paperIdController.clear(); _showSnackBar("Paper Added!");
     }
@@ -91,7 +104,6 @@ class _AdminPanelState extends State<AdminPanel> {
     }
   }
 
-  // 🚀 යාවත්කාලීන කළ Status Logic එක
   void _updateUserStatus(String userId, bool shouldDeactivate) async {
     String action = shouldDeactivate ? "Deactivate" : "Activate";
     if (await _confirm("$action User", "Do you want to $action this user?")) {
@@ -99,6 +111,16 @@ class _AdminPanelState extends State<AdminPanel> {
         'isDeactivated': shouldDeactivate,
       });
       _showSnackBar("User updated successfully!");
+    }
+  }
+
+  void _updateUserPremiumStatus(String userId, bool isPremium) async {
+    String action = isPremium ? "Upgrade to Premium" : "Remove Premium";
+    if (await _confirm(action, "Do you want to $action for this user?")) {
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'isPremium': isPremium,
+      });
+      _showSnackBar("User premium status updated!");
     }
   }
 
@@ -147,12 +169,20 @@ class _AdminPanelState extends State<AdminPanel> {
 
   // --- TAB CONTENTS ---
 
-  Widget _buildAddCategoryTab() => _buildGlassCard("Add New Category", Colors.cyanAccent, [
-    _buildTextField(_catNameController, "Name"),
-    _buildTextField(_catIdController, "ID"),
-    _buildIconPicker(),
-    _buildButton(_addCategory, "Save Category", Colors.cyan.shade700),
-  ]);
+  Widget _buildAddCategoryTab() => Column(
+    children: [
+      _buildGlassCard("Add New Category", Colors.cyanAccent, [
+        _buildTextField(_catNameController, "Name"),
+        _buildTextField(_catIdController, "ID"),
+        _buildIconPicker(),
+        _buildButton(_addCategory, "Save Category", Colors.cyan.shade700),
+      ]),
+      const SizedBox(height: 20),
+      _buildGlassCard("Manage Existing Categories", Colors.cyan, [
+        _buildCategoryList(),
+      ]),
+    ],
+  );
 
   Widget _buildAddPaperTab() => _buildGlassCard("Add New Paper", Colors.orangeAccent, [
     _buildCatDrop((v) => setState(() => _selectedCatForPaper = v), _selectedCatForPaper),
@@ -194,6 +224,7 @@ class _AdminPanelState extends State<AdminPanel> {
           itemBuilder: (context, i) {
             var data = snap.data!.docs[i].data() as Map<String, dynamic>;
             bool deact = data['isDeactivated'] ?? false;
+            bool isPremium = data['isPremium'] ?? false;
             String email = data['email'] ?? 'No Email';
             String name = data['name'] ?? email.split('@')[0];
 
@@ -202,19 +233,48 @@ class _AdminPanelState extends State<AdminPanel> {
               decoration: BoxDecoration(
                 color: deact ? Colors.redAccent.withOpacity(0.05) : Colors.white.withOpacity(0.02),
                 borderRadius: BorderRadius.circular(15),
+                border: isPremium ? Border.all(color: Colors.amber.withOpacity(0.5), width: 1) : null,
               ),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: deact ? Colors.redAccent.withOpacity(0.2) : Colors.blueAccent.withOpacity(0.2),
-                  child: Text(name[0].toUpperCase(), style: const TextStyle(color: Colors.white)),
+                  backgroundColor: deact 
+                      ? Colors.redAccent.withOpacity(0.2) 
+                      : (isPremium ? Colors.amber.withOpacity(0.2) : Colors.blueAccent.withOpacity(0.2)),
+                  child: isPremium && !deact
+                      ? const Icon(Icons.star, color: Colors.amber, size: 20)
+                      : Text(name[0].toUpperCase(), style: const TextStyle(color: Colors.white)),
                 ),
                 title: Text(email, style: TextStyle(color: deact ? Colors.white24 : Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                subtitle: Text(deact ? "Blocked • $name" : "Active • $name • ${data['totalScore'] ?? 0} XP", 
-                  style: TextStyle(color: deact ? Colors.redAccent : Colors.cyanAccent, fontSize: 11)),
-                trailing: Switch(
-                  value: !deact, // ON කියන්නේ Active (Not Deactivated)
-                  activeColor: const Color(0xFF38BDF8),
-                  onChanged: (v) => _updateUserStatus(snap.data!.docs[i].id, !v), // Switch OFF කළොත් v=false, එතකොට shouldDeactivate = !false = true
+                subtitle: Text(deact 
+                    ? "Blocked • $name" 
+                    : "Active${isPremium ? ' • Premium' : ''} • $name • ${data['totalScore'] ?? 0} XP", 
+                  style: TextStyle(color: deact ? Colors.redAccent : (isPremium ? Colors.amber : Colors.cyanAccent), fontSize: 11)),
+                
+                // Toggle Switches වෙනුවට අලුත් Icons ටික
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Premium Toggle Icon
+                    IconButton(
+                      icon: Icon(
+                        isPremium ? Icons.star : Icons.star_border,
+                        color: isPremium ? Colors.amber : Colors.white38,
+                        size: 26,
+                      ),
+                      tooltip: isPremium ? "Remove Premium" : "Make Premium",
+                      onPressed: () => _updateUserPremiumStatus(snap.data!.docs[i].id, !isPremium),
+                    ),
+                    // Active/Deactivate Toggle Icon
+                    IconButton(
+                      icon: Icon(
+                        deact ? Icons.block : Icons.check_circle,
+                        color: deact ? Colors.redAccent : Colors.cyanAccent,
+                        size: 24,
+                      ),
+                      tooltip: deact ? "Unblock User" : "Block User",
+                      onPressed: () => _updateUserStatus(snap.data!.docs[i].id, !deact),
+                    ),
+                  ],
                 ),
               ),
             );
@@ -256,13 +316,66 @@ class _AdminPanelState extends State<AdminPanel> {
 
   InputDecoration _inputDeco(String l) => InputDecoration(labelText: l, labelStyle: const TextStyle(color: Colors.white38), floatingLabelStyle: const TextStyle(color: Color(0xFF38BDF8)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.white10)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF38BDF8))));
 
-  Widget _buildPapersList(String catId) => StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('categories').doc(catId).collection('papers').snapshots(), builder: (context, snap) {
-    if (!snap.hasData) return const SizedBox();
-    return Column(children: snap.data!.docs.map((d) => ListTile(title: Text(d['title'], style: const TextStyle(color: Colors.white, fontSize: 14)), trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.redAccent, size: 20), onPressed: () => _deletePaper(catId, d.id)))).toList());
+  Widget _buildCategoryList() => StreamBuilder<QuerySnapshot>(
+    stream: FirebaseFirestore.instance.collection('categories').snapshots(), 
+    builder: (context, snap) {
+      if (!snap.hasData) return const SizedBox();
+      return Column(
+        children: snap.data!.docs.map((d) {
+          var data = d.data() as Map<String, dynamic>;
+          bool isVisible = data.containsKey('isVisible') ? data['isVisible'] : true;
+          return ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(data['name'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 14)), 
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Switch(
+                  value: isVisible,
+                  activeColor: Colors.cyanAccent,
+                  onChanged: (v) {
+                    FirebaseFirestore.instance.collection('categories').doc(d.id).update({'isVisible': v});
+                  },
+                ),
+                IconButton(icon: const Icon(Icons.delete, color: Colors.redAccent, size: 20), onPressed: () => _deleteCategory(d.id))
+              ],
+            )
+          );
+        }).toList()
+      );
+  });
+
+  Widget _buildPapersList(String catId) => StreamBuilder<QuerySnapshot>(
+    stream: FirebaseFirestore.instance.collection('categories').doc(catId).collection('papers').snapshots(), 
+    builder: (context, snap) {
+      if (!snap.hasData) return const SizedBox();
+      return Column(
+        children: snap.data!.docs.map((d) {
+          var data = d.data() as Map<String, dynamic>;
+          bool isVisible = data.containsKey('isVisible') ? data['isVisible'] : true;
+          return ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(data['title'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 14)), 
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Switch(
+                  value: isVisible,
+                  activeColor: Colors.orangeAccent,
+                  onChanged: (v) {
+                    FirebaseFirestore.instance.collection('categories').doc(catId).collection('papers').doc(d.id).update({'isVisible': v});
+                  },
+                ),
+                IconButton(icon: const Icon(Icons.delete, color: Colors.redAccent, size: 20), onPressed: () => _deletePaper(catId, d.id))
+              ],
+            )
+          );
+        }).toList()
+      );
   });
 
   Widget _buildQuestList(String c, String p) => StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('categories').doc(c).collection('papers').doc(p).collection('questions').orderBy('createdAt').snapshots(), builder: (context, snap) {
     if (!snap.hasData) return const SizedBox();
-    return Column(children: snap.data!.docs.map((d) => ListTile(title: Text(d['questionText'], maxLines: 1, style: const TextStyle(color: Colors.white70, fontSize: 13)), trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.redAccent, size: 18), onPressed: () => _deleteQuestion(c, p, d.id)))).toList());
+    return Column(children: snap.data!.docs.map((d) => ListTile(contentPadding: EdgeInsets.zero, title: Text(d['questionText'], maxLines: 1, style: const TextStyle(color: Colors.white70, fontSize: 13)), trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.redAccent, size: 18), onPressed: () => _deleteQuestion(c, p, d.id)))).toList());
   });
 }
