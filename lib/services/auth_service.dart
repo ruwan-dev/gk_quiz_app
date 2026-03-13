@@ -25,14 +25,26 @@ class AuthService {
     }
   }
 
-  // Reset Password
-  Future<bool> resetPassword(String email) async {
+  // Reset Password — returns null on success, or an error message string on failure
+  Future<String?> resetPassword(String email) async {
     try {
-      await _auth.sendPasswordResetEmail(email: email);
-      return true;
+      await _auth.sendPasswordResetEmail(email: email.trim());
+      return null; // success
+    } on FirebaseAuthException catch (e) {
+      print('FirebaseAuthException: ${e.code} — ${e.message}');
+      switch (e.code) {
+        case 'user-not-found':
+          return 'No account found for this email.';
+        case 'invalid-email':
+          return 'Please enter a valid email address.';
+        case 'too-many-requests':
+          return 'Too many attempts. Please try again later.';
+        default:
+          return e.message ?? 'Failed to send reset link. Try again.';
+      }
     } catch (e) {
-      print(e.toString());
-      return false;
+      print('Unknown error: $e');
+      return 'An unexpected error occurred. Please try again.';
     }
   }
 

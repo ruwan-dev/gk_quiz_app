@@ -202,18 +202,25 @@ class _LoginScreenState extends State<LoginScreen> {
                     ? null 
                     : () async {
                         final email = resetEmailController.text.trim();
-                        if (email.isEmpty) return;
+                        if (email.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Please enter your email."), backgroundColor: Colors.redAccent)
+                          );
+                          return;
+                        }
                         
                         setState(() => isResetting = true);
-                        bool success = await _auth.resetPassword(email);
+                        // Returns null on success, or an error message string
+                        String? errorMsg = await _auth.resetPassword(email);
                         setState(() => isResetting = false);
                         
                         if (mounted) {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(success ? "Password reset link sent to $email" : "Failed to send reset link. Try again."),
-                              backgroundColor: success ? Colors.green : Colors.redAccent,
+                              content: Text(errorMsg == null ? "Password reset link sent to $email. Check your inbox (and spam folder)." : errorMsg),
+                              backgroundColor: errorMsg == null ? Colors.green : Colors.redAccent,
+                              duration: const Duration(seconds: 5),
                             )
                           );
                         }
