@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'help_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -138,6 +139,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
               ),
+
+              const SizedBox(height: 25),
+              
+              // 🆘 Help & Support Section
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withOpacity(0.15),
+                        shape: BoxShape.circle),
+                    child: const Icon(Icons.help_outline, color: Color(0xFF10B981)),
+                  ),
+                  title: const Text("Help & Support", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  subtitle: const Text("Report an issue or bug", style: TextStyle(color: Colors.white38, fontSize: 12)),
+                  trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const HelpScreen()));
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
             ],
           ),
         );

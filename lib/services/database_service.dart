@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/question_model.dart';
+import '../models/issue_model.dart';
 
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -24,5 +25,34 @@ class DatabaseService {
     }
   }
 
-  // වෙනත් දත්ත ලබාගැනීමේ ෆන්ක්ෂන් මෙතනට එක් කරන්න පුළුවන්...
+  // 🚀 Issue එකක් Report කරන ෆන්ක්ෂන් එක
+  Future<bool> reportIssue({required String userId, required String userEmail, required String description}) async {
+    try {
+      await _db.collection('issues').add({
+        'userId': userId,
+        'userEmail': userEmail,
+        'description': description,
+        'createdAt': Timestamp.now(),
+        'isResolved': false,
+      });
+      return true;
+    } catch (e) {
+      print("Error reporting issue: $e");
+      return false;
+    }
+  }
+
+  // 🚀 Issues ලබාගන්නා ෆන්ක්ෂන් එක (Admin සඳහා)
+  Future<List<IssueModel>> getIssues() async {
+    try {
+      var snapshot = await _db
+          .collection('issues')
+          .orderBy('createdAt', descending: true)
+          .get();
+      return snapshot.docs.map<IssueModel>((doc) => IssueModel.fromFirestore(doc)).toList();
+    } catch (e) {
+      print("Error fetching issues: $e");
+      return [];
+    }
+  }
 }

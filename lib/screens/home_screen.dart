@@ -10,6 +10,7 @@ import 'leaderboard_screen.dart';
 import 'profile_screen.dart'; 
 import '../main.dart';
 import '../theme/app_theme.dart';
+import '../utils/gemini_loader.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -195,6 +196,7 @@ class HomeTab extends StatelessWidget {
           StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).snapshots(),
             builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: Padding(padding: EdgeInsets.all(20.0), child: GeminiLoader(size: 60)));
               if (!snapshot.hasData) return const SizedBox(height: 80);
               var userData = snapshot.data!.data() as Map<String, dynamic>?;
               String name = userData?['name'] ?? currentUser?.email?.split('@')[0] ?? 'User';
@@ -308,7 +310,7 @@ class HomeTab extends StatelessWidget {
                   .orderBy('createdAt', descending: false)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: Padding(padding: EdgeInsets.only(top: 40.0), child: GeminiLoader(size: 60)));
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text("No categories found", style: TextStyle(color: Colors.white70)));
 
                 final visibleCategories = snapshot.data!.docs.where((doc) {

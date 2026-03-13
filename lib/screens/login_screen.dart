@@ -108,7 +108,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   icon: Icons.lock_outline,
                   isObscure: true,
                 ),
-                const SizedBox(height: 30),
+                
+                // 💡 Forgot Password
+                if (_isLogin)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => _showForgotPasswordDialog(context),
+                      child: const Text("Forgot Password?", style: TextStyle(color: Colors.white70)),
+                    ),
+                  )
+                else
+                  const SizedBox(height: 15),
+
+                const SizedBox(height: 15),
 
                 // 🚀 Submit Button
                 SizedBox(
@@ -143,6 +156,77 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showForgotPasswordDialog(BuildContext context) {
+    final TextEditingController resetEmailController = TextEditingController(text: _emailController.text);
+    
+    showDialog(
+      context: context,
+      builder: (context) {
+        bool isResetting = false;
+        
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1E293B),
+              title: const Text("Reset Password", style: TextStyle(color: Colors.white)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("Enter your email to receive a password reset link.", style: TextStyle(color: Colors.white70)),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: resetEmailController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: "Email",
+                      labelStyle: const TextStyle(color: Colors.white38),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.05),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Color(0xFF38BDF8))),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Cancel", style: TextStyle(color: Colors.white70)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF38BDF8)),
+                  onPressed: isResetting 
+                    ? null 
+                    : () async {
+                        final email = resetEmailController.text.trim();
+                        if (email.isEmpty) return;
+                        
+                        setState(() => isResetting = true);
+                        bool success = await _auth.resetPassword(email);
+                        setState(() => isResetting = false);
+                        
+                        if (mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(success ? "Password reset link sent to $email" : "Failed to send reset link. Try again."),
+                              backgroundColor: success ? Colors.green : Colors.redAccent,
+                            )
+                          );
+                        }
+                      },
+                  child: isResetting 
+                    ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                    : const Text("Send Link", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          }
+        );
+      }
     );
   }
 

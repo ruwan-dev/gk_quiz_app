@@ -1,23 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'theme/app_theme.dart';
 import 'screens/login_screen.dart';
+import 'screens/home_screen.dart';
 import 'providers/quiz_provider.dart';
+import 'utils/gemini_loader.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final Future<FirebaseApp> _initialization = Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  @override
   Widget build(BuildContext context) {
-    return MultiProvider(
+    return FutureBuilder(
+      future: _initialization,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: Scaffold(
+              backgroundColor: Colors.transparent,
+              body: MainBackgroundWrapper(
+                child: Center(
+                  child: GeminiLoader(size: 80),
+                ),
+              ),
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: Scaffold(
+              backgroundColor: Colors.transparent,
+              body: MainBackgroundWrapper(
+                child: Center(
+                  child: Text("Error initializing app: ${snapshot.error}", style: const TextStyle(color: Colors.white)),
+                ),
+              ),
+            ),
+          );
+        }
+
+        return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => QuizProvider()),
       ],
@@ -25,9 +65,11 @@ class MyApp extends StatelessWidget {
         title: 'SL Exam Guide',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
-        // Wraps every screen with the consistent gradient background
-        home: const MainBackgroundWrapper(child: LoginScreen()),
-      ),
+            // Wraps every screen with the consistent gradient background
+            home: const AuthWrapper(),
+          ),
+        );
+      },
     );
   }
 }
@@ -53,6 +95,36 @@ class MainBackgroundWrapper extends StatelessWidget {
         ),
       ),
       child: child,
+    );
+  }
+}
+
+// Wrapper to check if user is logged in
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const MainBackgroundWrapper(
+            child: Scaffold(
+              backgroundColor: Colors.transparent,
+              body: Center(
+                child: GeminiLoader(size: 80),
+              ),
+            ),
+          );
+        }
+        
+        if (snapshot.hasData && snapshot.data != null) {
+          return const MainBackgroundWrapper(child: HomeScreen());
+        }
+        
+        return const MainBackgroundWrapper(child: LoginScreen());
+      },
     );
   }
 }

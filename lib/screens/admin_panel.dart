@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../utils/icon_helper.dart';
+import 'admin_issues_screen.dart';
 
 class AdminPanel extends StatefulWidget {
   const AdminPanel({super.key});
@@ -148,7 +149,7 @@ class _AdminPanelState extends State<AdminPanel> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 6,
+      length: 7,
       child: Scaffold(
         backgroundColor: const Color(0xFF0F172A),
         appBar: AppBar(
@@ -167,6 +168,7 @@ class _AdminPanelState extends State<AdminPanel> {
               Tab(text: "Question", icon: Icon(Icons.add_task)),
               Tab(text: "Manage Quests", icon: Icon(Icons.settings_suggest)),
               Tab(text: "Users", icon: Icon(Icons.people_alt_rounded)),
+              Tab(text: "Issues", icon: Icon(Icons.bug_report)),
             ],
           ),
         ),
@@ -178,6 +180,7 @@ class _AdminPanelState extends State<AdminPanel> {
             _buildTabWrapper(_buildAddQuestionTab()),
             _buildTabWrapper(_buildManageQuestionsTab()),
             _buildTabWrapper(_buildManageUsersTab()),
+            const AdminIssuesScreen(),
           ],
         ),
       ),
