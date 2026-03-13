@@ -196,7 +196,7 @@ class HomeTab extends StatelessWidget {
           StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).snapshots(),
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: Padding(padding: EdgeInsets.all(20.0), child: GeminiLoader(size: 60)));
+              if (snapshot.connectionState == ConnectionState.waiting) return const SizedBox(height: 80);
               if (!snapshot.hasData) return const SizedBox(height: 80);
               var userData = snapshot.data!.data() as Map<String, dynamic>?;
               String name = userData?['name'] ?? currentUser?.email?.split('@')[0] ?? 'User';
