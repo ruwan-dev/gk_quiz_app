@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert'; 
+import 'dart:math' as math;
 import '../utils/icon_helper.dart';
+import '../utils/gemini_loader.dart'; 
 import 'admin_issues_screen.dart';
 
 class AdminPanel extends StatefulWidget {
@@ -15,7 +18,7 @@ class _AdminPanelState extends State<AdminPanel> {
   final TextEditingController _catNameController = TextEditingController();
   final TextEditingController _catIdController = TextEditingController();
   final TextEditingController _paperIdController = TextEditingController();
-  final TextEditingController _paperTitleController = TextEditingController(); // 🔴 අලුත් Paper Title Box එක
+  final TextEditingController _paperTitleController = TextEditingController();
   final TextEditingController _questionController = TextEditingController();
   final List<TextEditingController> _optionControllers = List.generate(4, (_) => TextEditingController());
   final TextEditingController _explanationController = TextEditingController();
@@ -73,7 +76,6 @@ class _AdminPanelState extends State<AdminPanel> {
 
   void _addPaper() async {
     if (_selectedCatForPaper != null && _paperIdController.text.isNotEmpty) {
-      // 🔴 සිංහල Title එකක් දීලා තියෙනවා නම් ඒක ගන්නවා, නැත්නම් ID එක ගන්නවා.
       String title = _paperTitleController.text.isNotEmpty ? _paperTitleController.text : _paperIdController.text.toUpperCase();
       
       await FirebaseFirestore.instance.collection('categories').doc(_selectedCatForPaper).collection('papers').doc(_paperIdController.text).set({
@@ -83,7 +85,7 @@ class _AdminPanelState extends State<AdminPanel> {
         'isPremium': false,
       });
       _paperIdController.clear(); 
-      _paperTitleController.clear(); // Clear the title box
+      _paperTitleController.clear();
       _showSnackBar("Paper Added!");
     }
   }
@@ -144,12 +146,10 @@ class _AdminPanelState extends State<AdminPanel> {
     }
   }
 
-  // --- UI STRUCTURE ---
-
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 7,
+      length: 8, 
       child: Scaffold(
         backgroundColor: const Color(0xFF0F172A),
         appBar: AppBar(
@@ -166,6 +166,7 @@ class _AdminPanelState extends State<AdminPanel> {
               Tab(text: "Paper", icon: Icon(Icons.note_add)),
               Tab(text: "Manage Papers", icon: Icon(Icons.edit_note)),
               Tab(text: "Question", icon: Icon(Icons.add_task)),
+              Tab(text: "Bulk Upload", icon: Icon(Icons.cloud_upload)), 
               Tab(text: "Manage Quests", icon: Icon(Icons.settings_suggest)),
               Tab(text: "Users", icon: Icon(Icons.people_alt_rounded)),
               Tab(text: "Issues", icon: Icon(Icons.bug_report)),
@@ -178,6 +179,7 @@ class _AdminPanelState extends State<AdminPanel> {
             _buildTabWrapper(_buildAddPaperTab()),
             _buildTabWrapper(_buildManagePapersTab()),
             _buildTabWrapper(_buildAddQuestionTab()),
+            _buildTabWrapper(const BulkUploadTab()), 
             _buildTabWrapper(_buildManageQuestionsTab()),
             _buildTabWrapper(_buildManageUsersTab()),
             const AdminIssuesScreen(),
@@ -209,7 +211,7 @@ class _AdminPanelState extends State<AdminPanel> {
   Widget _buildAddPaperTab() => _buildGlassCard("Add New Paper", Colors.orangeAccent, [
     _buildCatDrop((v) => setState(() => _selectedCatForPaper = v), _selectedCatForPaper),
     _buildTextField(_paperIdController, "Paper ID (Ex: paper_1)"),
-    _buildTextField(_paperTitleController, "Paper Name (Sinhala/English)"), // 🔴 අලුත් Box එක මෙතන
+    _buildTextField(_paperTitleController, "Paper Name (Sinhala/English)"),
     _buildButton(_addPaper, "Save Paper", Colors.orange.shade700),
   ]);
 
@@ -426,4 +428,155 @@ class _AdminPanelState extends State<AdminPanel> {
     if (!snap.hasData) return const SizedBox();
     return Column(children: snap.data!.docs.map((d) => ListTile(contentPadding: EdgeInsets.zero, title: Text(d['questionText'], maxLines: 1, style: const TextStyle(color: Colors.white70, fontSize: 13)), trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.redAccent, size: 18), onPressed: () => _deleteQuestion(c, p, d.id)))).toList());
   });
+}
+
+// 🚀 BULK UPLOAD WIDGET (With Dropdowns) 🚀
+class BulkUploadTab extends StatefulWidget {
+  const BulkUploadTab({super.key});
+
+  @override
+  State<BulkUploadTab> createState() => _BulkUploadTabState();
+}
+
+class _BulkUploadTabState extends State<BulkUploadTab> {
+  final TextEditingController _jsonController = TextEditingController();
+  String? _selectedCatId; // 🚀 සිලෙක්ට් කළ Category ID
+  String? _selectedPaperId; // 🚀 සිලෙක්ට් කළ Paper ID
+  bool _isLoading = false;
+
+  Future<void> _processBulkUpload() async {
+    if (_jsonController.text.isEmpty || _selectedCatId == null || _selectedPaperId == null) {
+      _showSnackBar("Please select Category, Paper and paste JSON!", Colors.redAccent);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      List<dynamic> questions = jsonDecode(_jsonController.text);
+      WriteBatch batch = FirebaseFirestore.instance.batch();
+      
+      CollectionReference qRef = FirebaseFirestore.instance
+          .collection('categories')
+          .doc(_selectedCatId)
+          .collection('papers')
+          .doc(_selectedPaperId)
+          .collection('questions');
+
+      for (var q in questions) {
+        DocumentReference newDoc = qRef.doc();
+        batch.set(newDoc, {
+          'questionText': q['question'], 
+          'options': q['options'],
+          'correctAnswerIndex': q['correctAnswerIndex'] ?? 0, 
+          'explanation': q['explanation'] ?? "",
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      await batch.commit();
+      _showSnackBar("✅ Successfully uploaded ${questions.length} questions!", Colors.green);
+      _jsonController.clear();
+      
+    } catch (e) {
+      _showSnackBar("❌ Error: Invalid JSON or Firestore issue.", Colors.redAccent);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showSnackBar(String msg, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(20)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Bulk Upload Questions", style: TextStyle(color: Colors.greenAccent, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 20),
+                  
+                  // 🚀 Category Dropdown
+                  StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance.collection('categories').snapshots(),
+                    builder: (context, snap) {
+                      if (!snap.hasData) return const LinearProgressIndicator();
+                      return DropdownButtonFormField<String>(
+                        dropdownColor: const Color(0xFF1E293B),
+                        style: const TextStyle(color: Colors.white),
+                        decoration: _inputDeco("Select Category"),
+                        value: _selectedCatId,
+                        items: snap.data!.docs.map((d) => DropdownMenuItem(value: d.id, child: Text(d['name']))).toList(),
+                        onChanged: (v) => setState(() { _selectedCatId = v; _selectedPaperId = null; }),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 15),
+
+                  // 🚀 Paper Dropdown
+                  if (_selectedCatId != null)
+                    StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance.collection('categories').doc(_selectedCatId).collection('papers').snapshots(),
+                      builder: (context, snap) {
+                        if (!snap.hasData) return const LinearProgressIndicator();
+                        return DropdownButtonFormField<String>(
+                          dropdownColor: const Color(0xFF1E293B),
+                          style: const TextStyle(color: Colors.white),
+                          decoration: _inputDeco("Select Paper"),
+                          value: _selectedPaperId,
+                          items: snap.data!.docs.map((d) => DropdownMenuItem(value: d.id, child: Text(d['title']))).toList(),
+                          onChanged: (v) => setState(() => _selectedPaperId = v),
+                        );
+                      },
+                    ),
+                  
+                  const SizedBox(height: 15),
+                  TextField(
+                    controller: _jsonController,
+                    maxLines: 12,
+                    style: const TextStyle(color: Colors.greenAccent, fontSize: 12, fontFamily: 'monospace'),
+                    decoration: InputDecoration(
+                      hintText: 'Paste JSON Array Here...',
+                      hintStyle: const TextStyle(color: Colors.white24),
+                      fillColor: Colors.black26,
+                      filled: true,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      onPressed: _isLoading ? null : _processBulkUpload,
+                      icon: const Icon(Icons.bolt_rounded),
+                      label: Text(_isLoading ? "Uploading..." : "Start Bulk Upload"),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (_isLoading)
+          const Center(child: GeminiLoader(size: 80)),
+      ],
+    );
+  }
+
+  InputDecoration _inputDeco(String l) => InputDecoration(
+    labelText: l,
+    labelStyle: const TextStyle(color: Colors.white38),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.white10)),
+    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.greenAccent)),
+  );
 }
