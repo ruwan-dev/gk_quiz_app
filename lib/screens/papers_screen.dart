@@ -5,13 +5,19 @@ import 'dart:math' as math;
 import 'quiz_screen.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
-import '../utils/app_constants.dart'; // 🚀 App Constants ෆයිල් එක Import කළා
+import '../utils/app_constants.dart';
 
 class PapersScreen extends StatelessWidget {
   final String categoryId;
   final String categoryName;
+  final Function(String) onNavigate; // 🚀 Tab මාරු කරන function එක
 
-  const PapersScreen({super.key, required this.categoryId, required this.categoryName});
+  const PapersScreen({
+    super.key, 
+    required this.categoryId, 
+    required this.categoryName,
+    required this.onNavigate, // Constructor එකට එක් කළා
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -54,10 +60,7 @@ class PapersScreen extends StatelessWidget {
               
               final docs = allDocs.where((doc) {
                 final data = doc.data() as Map<String, dynamic>;
-                if (data.containsKey('isVisible') && data['isVisible'] == false) {
-                  return false;
-                }
-                return true;
+                return !(data.containsKey('isVisible') && data['isVisible'] == false);
               }).toList();
 
               if (docs.isEmpty) {
@@ -73,7 +76,6 @@ class PapersScreen extends StatelessWidget {
                   final paper = docs[index];
                   final paperData = paper.data() as Map<String, dynamic>;
                   
-                  // 🔴 මෙතනින් තමයි අර අලුත් සිංහල නම ගන්නෙ
                   final String paperDisplayName = (paperData['title'] != null && paperData['title'].toString().isNotEmpty) 
                       ? paperData['title'] 
                       : paper.id.replaceAll('_', ' ').toUpperCase();
@@ -88,6 +90,7 @@ class PapersScreen extends StatelessWidget {
                       categoryId: categoryId,
                       isPaperPremium: isPaperPremium,
                       isUserPremium: isUserPremium,
+                      onNavigate: onNavigate, // 🚀 Card එකට Pass කළා
                     ),
                   );
                 },
@@ -106,6 +109,7 @@ class AnimatedPaperCard extends StatefulWidget {
   final String categoryId;
   final bool isPaperPremium;
   final bool isUserPremium;
+  final Function(String) onNavigate; // 🚀 Tab Navigate Function
 
   const AnimatedPaperCard({
     super.key,
@@ -114,6 +118,7 @@ class AnimatedPaperCard extends StatefulWidget {
     required this.categoryId,
     required this.isPaperPremium,
     required this.isUserPremium,
+    required this.onNavigate,
   });
 
   @override
@@ -188,7 +193,9 @@ class _AnimatedPaperCardState extends State<AnimatedPaperCard> with SingleTicker
               borderRadius: BorderRadius.circular(20),
               onTap: () {
                 if (isLocked) {
-                  showDialog(context: context, builder: (context) => const AnimatedPremiumPopup());
+                  // 🚀 Popup වෙනුවට Premium Tab එකට Navigate කරයි
+                  Navigator.pop(context); // Papers ලිස්ට් එක Close කරයි
+                  widget.onNavigate("Premium"); // Premium Tab එක පෙන්වයි
                 } else {
                   Navigator.push(
                     context,
@@ -223,23 +230,13 @@ class _AnimatedPaperCardState extends State<AnimatedPaperCard> with SingleTicker
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  widget.title,
-                                  style: TextStyle(
-                                    fontSize: 18, 
-                                    fontWeight: FontWeight.bold, 
-                                    color: isLocked ? Colors.white54 : Colors.white
-                                  ),
-                                ),
-                              ),
-                              if (widget.isPaperPremium) ...[
-                                const SizedBox(width: 8),
-                                const Icon(Icons.workspace_premium, color: Colors.amber, size: 16),
-                              ]
-                            ],
+                          Text(
+                            widget.title,
+                            style: TextStyle(
+                              fontSize: 18, 
+                              fontWeight: FontWeight.bold, 
+                              color: isLocked ? Colors.white54 : Colors.white
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -304,134 +301,4 @@ class GradientBorderPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant GradientBorderPainter oldDelegate) => 
       oldDelegate.angle != angle;
-}
-
-class AnimatedPremiumPopup extends StatefulWidget {
-  const AnimatedPremiumPopup({super.key});
-
-  @override
-  State<AnimatedPremiumPopup> createState() => _AnimatedPremiumPopupState();
-}
-
-class _AnimatedPremiumPopupState extends State<AnimatedPremiumPopup> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return CustomPaint(
-            painter: GradientBorderPainter(
-              angle: _controller.value * 2 * math.pi,
-              strokeWidth: 3.0,
-              radius: 20,
-              gradientColors: const [
-                Color(0xFF10B981),
-                Colors.amber,
-                Color(0xFF059669),
-                Colors.amber,
-              ],
-            ),
-            child: child,
-          );
-        },
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: const Color(0xFF0F172A), 
-            borderRadius: BorderRadius.circular(20), 
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.workspace_premium, color: Colors.amber, size: 50),
-              ),
-              const SizedBox(height: 15),
-              const Text(
-                "Unlock Premium!",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.amber, fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                "Please deposit the fee to the bank account below and WhatsApp the payment receipt to unlock all app features.\n\nපහත බැංකු ගිණුමට මුදල් ගෙවා, ගෙවීම් ලදුපත WhatsApp කරන්න. ඉන්පසු ඇප් එකේ සියලුම පහසුකම් ලබාගත හැක!",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.5),
-              ),
-              const SizedBox(height: 20),
-              
-              // 🚀 මෙතනින් තමයි AppConstants වලින් Bank & WhatsApp details අරගන්නේ
-              Container(
-                width: double.infinity, 
-                padding: const EdgeInsets.all(15), 
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.03), 
-                  borderRadius: BorderRadius.circular(12), 
-                  border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4))
-                ), 
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start, 
-                  children: [
-                    Text("Bank: ${AppConstants.bankName}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                    const SizedBox(height: 5),
-                    Text("Account No: ${AppConstants.bankAccountNo}", style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2)),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8.0),
-                      child: Divider(color: Colors.white10, thickness: 1),
-                    ),
-                    Row(
-                      children: [
-                        const Icon(Icons.chat_bubble_outline, color: Color(0xFF25D366), size: 16),
-                        const SizedBox(width: 8),
-                        Text("WhatsApp: ${AppConstants.phoneNumber}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                      ],
-                    ),
-                  ]
-                )
-              ),
-              
-              const SizedBox(height: 25),
-              SizedBox(
-                width: double.infinity,
-                height: 45,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF10B981), 
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Got it! / හරි මට තේරුණා!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                ),
-              )
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

@@ -28,7 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case "Home": 
         return HomeTab(onNavigate: _onNavigateToTab); 
       case "Rank": 
-        return LeaderboardScreen(onNavigate: _onNavigateToTab); // 🚀 onNavigate පරාමිතිය ඇතුළත් කළා
+        return LeaderboardScreen(onNavigate: _onNavigateToTab); 
       case "Premium": 
         return const PremiumScreen(); 
       case "Profile": 
@@ -404,6 +404,7 @@ class HomeTab extends StatelessWidget {
                       catId: data['id'],
                       isNew: data['isNew'] ?? false,
                       isDisabled: data['isDisabled'] ?? false,
+                      onNavigate: onNavigate, // 🚀 onNavigate එක pass කළා
                     ),
                   );
                 },
@@ -417,8 +418,25 @@ class HomeTab extends StatelessWidget {
 }
 
 class AnimatedCategoryCard extends StatefulWidget {
-  final String title; final IconData icon; final Color iconColor; final String catId; final bool isNew; final bool isDisabled;
-  const AnimatedCategoryCard({super.key, required this.title, required this.icon, required this.iconColor, required this.catId, this.isNew = false, this.isDisabled = false});
+  final String title; 
+  final IconData icon; 
+  final Color iconColor; 
+  final String catId; 
+  final bool isNew; 
+  final bool isDisabled;
+  final Function(String) onNavigate; // 🚀 Constructor එකට එකතු කළා
+
+  const AnimatedCategoryCard({
+    super.key, 
+    required this.title, 
+    required this.icon, 
+    required this.iconColor, 
+    required this.catId, 
+    this.isNew = false, 
+    this.isDisabled = false,
+    required this.onNavigate, // 🚀 
+  });
+  
   @override
   State<AnimatedCategoryCard> createState() => _AnimatedCategoryCardState();
 }
@@ -497,7 +515,18 @@ class _AnimatedCategoryCardState extends State<AnimatedCategoryCard> with Single
               borderRadius: BorderRadius.circular(20),
               onTap: () {
                 if (!widget.isDisabled) {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => MainBackgroundWrapper(child: PapersScreen(categoryId: widget.catId, categoryName: widget.title))));
+                  Navigator.push(
+                    context, 
+                    MaterialPageRoute(
+                      builder: (context) => MainBackgroundWrapper(
+                        child: PapersScreen(
+                          categoryId: widget.catId, 
+                          categoryName: widget.title,
+                          onNavigate: widget.onNavigate, // 🚀 PapersScreen එකටත් pass කළා
+                        )
+                      )
+                    )
+                  );
                 }
               },
               child: Padding(
