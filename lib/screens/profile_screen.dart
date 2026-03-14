@@ -10,11 +10,30 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+// 🚀 Animation එක වැඩ කරන්න SingleTickerProviderStateMixin එකතු කළා
+class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
   final User? user = FirebaseAuth.instance.currentUser;
   final TextEditingController _nameController = TextEditingController();
+  
+  // 🚀 Branding Animation එක සඳහා Controller එක
+  late AnimationController _brandingController;
 
-  // 🚀 නම Update කරන ෆන්ක්ෂන් එක
+  @override
+  void initState() {
+    super.initState();
+    _brandingController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 120), // ඉතාම හෙමින් වර්ණ මාරු වීමට
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _brandingController.dispose();
+    _nameController.dispose();
+    super.dispose();
+  }
+
   void _updateName() async {
     if (_nameController.text.isNotEmpty) {
       await FirebaseFirestore.instance.collection('users').doc(user?.uid).update({
@@ -22,10 +41,143 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
       if(mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Profile Updated!"), backgroundColor: Colors.green),
+          const SnackBar(content: Text("Profile Updated!"), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating),
         );
+        FocusScope.of(context).unfocus(); 
       }
     }
+  }
+
+  void _showAboutUsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 🚀 Logo Section
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.05),
+                border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.3)),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(50),
+                child: Image.asset(
+                  'assets/logo.png', 
+                  width: 60,
+                  height: 60,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => 
+                      const Icon(Icons.rocket_launch_rounded, color: Color(0xFF38BDF8), size: 40),
+                ),
+              ),
+            ),
+            const SizedBox(height: 15),
+            const Text("AstroQuiz", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22, letterSpacing: 1.5)),
+            const SizedBox(height: 5),
+            const Text("Version 1.0.0", style: TextStyle(color: Colors.white24, fontSize: 10)),
+            
+            const SizedBox(height: 20),
+            
+            const Text(
+              "මෙම යෙදුම සුදුසුකම්ලත් දේශක මණ්ඩලයක් විසින් AI තාක්ෂණය භාවිතා කරමින්, ඔබට කරුණු පහසුවෙන් මතක තබා ගත හැකි වන අයුරින් නිර්මාණය කර ඇත.\n\n"
+              "නවතම විෂය නිර්දේශයන්ට අනුකූලව දිනපතා යාවත්කාලීන වන ප්‍රශ්න පත්‍ර මෙහි අඩංගු වන අතර, දිවයිනේම සිසුන් අතරින් ඔබේ දක්ෂතාවය පරීක්ෂා කර ගැනීමට Ranking පහසුකමද සලසා ඇත.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white70, 
+                fontSize: 13, 
+                height: 1.6,
+                fontFamily: 'SinhalaFont',
+              ),
+            ),
+            
+            const SizedBox(height: 25),
+            const Divider(color: Colors.white10, thickness: 1),
+            const SizedBox(height: 15),
+            
+            const Text("CONTACT US", style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 2)),
+            const SizedBox(height: 15),
+            
+            _buildContactItem(
+              icon: Icons.chat_bubble_outline,
+              label: "+94 71 936 2659",
+              color: const Color(0xFF25D366),
+            ),
+            
+            const SizedBox(height: 20),
+            
+            // 🚀 Powered by ලේබලය
+            Text(
+              "POWERED BY",
+              style: TextStyle(color: Colors.white.withOpacity(0.15), fontSize: 8, letterSpacing: 2),
+            ),
+            const SizedBox(height: 4),
+
+            // ✨ OrbitView Innovations - Animated Gradient
+            AnimatedBuilder(
+              animation: _brandingController,
+              builder: (context, child) {
+                return ShaderMask(
+                  shaderCallback: (bounds) {
+                    return LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        const Color(0xFF9C27B0).withOpacity(0.6), // Cosmic Purple
+                        const Color(0xFF00ACC1).withOpacity(0.8), // Nebula Teal
+                        const Color(0xFF38BDF8),                  // Star Blue
+                        const Color(0xFFE040FB).withOpacity(0.8), // Supernova Magenta
+                        const Color(0xFF9C27B0).withOpacity(0.6), 
+                      ],
+                      stops: [
+                        0.0,
+                        (_brandingController.value - 0.4).clamp(0.0, 1.0),
+                        _brandingController.value,
+                        (_brandingController.value + 0.4).clamp(0.0, 1.0),
+                        1.0,
+                      ],
+                    ).createShader(bounds);
+                  },
+                  child: const Text(
+                    "ORBITVIEW INNOVATIONS",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        actions: [
+          Center(
+            child: TextButton(
+              onPressed: () => Navigator.pop(context), 
+              child: const Text("Got it!", style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold))
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContactItem({required IconData icon, required String label, required Color color}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, color: color, size: 16),
+        const SizedBox(width: 10),
+        Text(label, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+      ],
+    );
   }
 
   @override
@@ -37,158 +189,145 @@ class _ProfileScreenState extends State<ProfileScreen> {
         
         var userData = snapshot.data!.data() as Map<String, dynamic>?;
         String name = userData?['name'] ?? user?.email?.split('@')[0] ?? 'User';
-        int score = userData?['totalScore'] ?? 0;
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              const SizedBox(height: 10),
-              
-              // 🖼️ Profile Picture Header
-              Center(
-                child: Stack(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFF38BDF8), width: 2),
-                      ),
-                      child: CircleAvatar(
-                        radius: 55,
-                        backgroundColor: Colors.white.withOpacity(0.05),
-                        child: const Icon(Icons.person, size: 65, color: Color(0xFF38BDF8)),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 5,
-                      right: 5,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(color: Color(0xFF38BDF8), shape: BoxShape.circle),
-                        child: const Icon(Icons.edit, size: 16, color: Colors.black),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              const SizedBox(height: 20),
-              Text(name, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-              Text(user?.email ?? '', style: const TextStyle(color: Colors.white38, fontSize: 14)),
-              
-              const SizedBox(height: 35),
-              
-              // 📊 Stats Grid
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildStatCard("Total XP", "$score", Icons.auto_awesome, Colors.amber),
-                  _buildStatCard("Global Rank", "#1", Icons.emoji_events, Colors.cyanAccent), // Rank එක පසුව dynamic කරමු
-                ],
-              ),
-              
-              const SizedBox(height: 35),
-              
-              // 📝 Edit Section Card
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white10),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              physics: MediaQuery.of(context).viewInsets.bottom != 0 
+                  ? const BouncingScrollPhysics() 
+                  : const NeverScrollableScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly, 
                       children: [
-                        Icon(Icons.manage_accounts, color: Color(0xFF38BDF8), size: 20),
-                        SizedBox(width: 10),
-                        Text("Profile Settings", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 10),
+                        
+                        // Profile Area
+                        Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: const Color(0xFF38BDF8), width: 1.5),
+                              ),
+                              child: CircleAvatar(
+                                radius: 32,
+                                backgroundColor: Colors.white.withOpacity(0.05),
+                                child: const Icon(Icons.person, size: 40, color: Color(0xFF38BDF8)),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                            Text(user?.email ?? '', style: const TextStyle(color: Colors.white38, fontSize: 11)),
+                          ],
+                        ),
+                        
+                        // Stats Area
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildStatCard("Total XP", "${userData?['totalScore'] ?? 0}", Icons.auto_awesome, Colors.amber),
+                            const SizedBox(width: 15),
+                            _buildStatCard("Global Rank", "#1", Icons.emoji_events, Colors.cyanAccent),
+                          ],
+                        ),
+                        
+                        // Menu Area
+                        Container(
+                          padding: const EdgeInsets.all(15),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.white10),
+                          ),
+                          child: Column(
+                            children: [
+                              TextField(
+                                controller: _nameController..text = name,
+                                style: const TextStyle(color: Colors.white, fontSize: 13),
+                                decoration: InputDecoration(
+                                  labelText: "Display Name",
+                                  labelStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+                                  isDense: true,
+                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.white10)),
+                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF38BDF8))),
+                                  prefixIcon: const Icon(Icons.person_outline, color: Colors.white38, size: 18),
+                                  suffixIcon: IconButton(
+                                    icon: const Icon(Icons.check_circle, color: Color(0xFF38BDF8), size: 20),
+                                    onPressed: _updateName,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              _buildSmallMenuTile(
+                                icon: Icons.help_outline,
+                                title: "Help & Support",
+                                color: const Color(0xFF10B981),
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HelpScreen())),
+                              ),
+                              const SizedBox(height: 8),
+                              _buildSmallMenuTile(
+                                icon: Icons.info_outline,
+                                title: "About Us",
+                                color: const Color(0xFF38BDF8),
+                                onTap: _showAboutUsDialog,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
                       ],
                     ),
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: _nameController..text = name,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        labelText: "Display Name",
-                        labelStyle: const TextStyle(color: Colors.white38),
-                        floatingLabelStyle: const TextStyle(color: Color(0xFF38BDF8)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: Colors.white10)),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: Color(0xFF38BDF8))),
-                        prefixIcon: const Icon(Icons.person_outline, color: Colors.white38),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 55,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF38BDF8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                          elevation: 0,
-                        ),
-                        onPressed: _updateName,
-                        child: const Text("Save Changes", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 25),
-              
-              // 🆘 Help & Support Section
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white10),
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withOpacity(0.15),
-                        shape: BoxShape.circle),
-                    child: const Icon(Icons.help_outline, color: Color(0xFF10B981)),
                   ),
-                  title: const Text("Help & Support", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  subtitle: const Text("Report an issue or bug", style: TextStyle(color: Colors.white38, fontSize: 12)),
-                  trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
-                  onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const HelpScreen()));
-                  },
                 ),
               ),
-              const SizedBox(height: 10),
-            ],
-          ),
+            );
+          }
         );
       },
     );
   }
 
+  Widget _buildSmallMenuTile({required IconData icon, required String title, required Color color, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(color: Colors.white.withOpacity(0.03), borderRadius: BorderRadius.circular(10)),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 16),
+            const SizedBox(width: 12),
+            Text(title, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)),
+            const Spacer(),
+            const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 10),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildStatCard(String label, String value, IconData icon, Color color) {
     return Container(
-      width: 150,
-      padding: const EdgeInsets.symmetric(vertical: 20),
+      width: 110,
+      padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(color: Colors.white10),
       ),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 10),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-          Text(label, style: const TextStyle(color: Colors.white38, fontSize: 12)),
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+          Text(label, style: const TextStyle(color: Colors.white38, fontSize: 9)),
         ],
       ),
     );

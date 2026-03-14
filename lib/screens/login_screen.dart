@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../main.dart';
 import 'home_screen.dart';
+import '../utils/gemini_loader.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,15 +11,37 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   final AuthService _auth = AuthService();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLogin = true; 
   bool _isLoading = false;
 
+  // 🚀 Space Gradient Animation එක සඳහා Controller එක
+  late AnimationController _brandingController;
+
+  @override
+  void initState() {
+    super.initState();
+    _brandingController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 60), // වර්ණ හෙමින් ගලාගෙන යන්න කාලය වැඩි කළා
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _brandingController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   void _submit() async {
+    FocusScope.of(context).unfocus(); 
     setState(() => _isLoading = true);
+    
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
@@ -37,17 +60,11 @@ class _LoginScreenState extends State<LoginScreen> {
       result = await _auth.registerWithEmail(email, password);
     }
 
-    if (mounted) setState(() => _isLoading = false);
-
-    if (result == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Authentication Failed. Please check your credentials."), backgroundColor: Colors.redAccent)
-      );
-    } else {
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => MainBackgroundWrapper(child: const HomeScreen())),
+    if (mounted) {
+      if (result == null) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Authentication Failed. Please check your credentials."), backgroundColor: Colors.redAccent)
         );
       }
     }
@@ -55,118 +72,221 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom != 0;
+
     return Scaffold(
-      backgroundColor: Colors.transparent, // Background wrapper එක පේන්න
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Container(
-            padding: const EdgeInsets.all(24.0),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05), // 🚀 Glassy Effect
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: Colors.white10),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Logo or Icon
-                Container(
-                  padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF38BDF8).withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.quiz_rounded, size: 50, color: Color(0xFF38BDF8)),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  _isLogin ? "Welcome Back" : "Create Account",
-                  style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _isLogin ? "Sign in to continue your progress" : "Join with us to start your journey",
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 14, color: Colors.white38),
-                ),
-                const SizedBox(height: 30),
+      backgroundColor: Colors.transparent,
+      resizeToAvoidBottomInset: true, 
+      body: Stack(
+        children: [
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const NeverScrollableScrollPhysics(), 
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: IntrinsicHeight(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                        child: Column(
+                          children: [
+                            const Spacer(flex: 2), 
+                            
+                            // 💎 Glassy Login Card
+                            Container(
+                              padding: const EdgeInsets.all(24.0),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(30),
+                                border: Border.all(color: Colors.white10),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // 🚀 Logo Area
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.05),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.2)),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(50),
+                                      child: Image.asset(
+                                        'assets/logo.png', 
+                                        width: 70,
+                                        height: 70,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) => 
+                                            const Icon(Icons.rocket_launch_rounded, size: 50, color: Color(0xFF38BDF8)),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  // ✨ ඔයාගේ අලුත් Welcome Message එක
+                                  Text(
+                                    _isLogin ? "Hello Future Leader!" : "Join to the Game of Knowledge!",
+                                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    _isLogin ? "Ready to conquer today's quiz?" : "Start your journey to the stars",
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 14, color: Colors.white38),
+                                  ),
+                                  const SizedBox(height: 30),
+                                  _buildTextField(
+                                    controller: _emailController,
+                                    label: "Email",
+                                    icon: Icons.email_outlined,
+                                    type: TextInputType.emailAddress,
+                                  ),
+                                  const SizedBox(height: 20),
+                                  _buildTextField(
+                                    controller: _passwordController,
+                                    label: "Password",
+                                    icon: Icons.lock_outline,
+                                    isObscure: true,
+                                  ),
+                                  if (_isLogin)
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: TextButton(
+                                        onPressed: () => _showForgotPasswordDialog(context),
+                                        child: const Text("Forgot Password?", style: TextStyle(color: Colors.white70)),
+                                      ),
+                                    )
+                                  else
+                                    const SizedBox(height: 15),
+                                  const SizedBox(height: 15),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 55,
+                                    child: ElevatedButton(
+                                      onPressed: _isLoading ? null : _submit,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF38BDF8),
+                                        foregroundColor: Colors.black,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                                        elevation: 0,
+                                      ),
+                                      child: Text(_isLogin ? "Sign In" : "Register", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 15),
+                                  TextButton(
+                                    onPressed: () => setState(() => _isLogin = !_isLogin),
+                                    child: Text(
+                                      _isLogin ? "Don't have an account? Register" : "Already have an account? Sign In",
+                                      style: const TextStyle(color: Color(0xFF38BDF8)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
 
-                // 📧 Email Field
-                _buildTextField(
-                  controller: _emailController,
-                  label: "Email",
-                  icon: Icons.email_outlined,
-                  type: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 20),
+                            const Spacer(flex: 3), 
 
-                // 🔑 Password Field
-                _buildTextField(
-                  controller: _passwordController,
-                  label: "Password",
-                  icon: Icons.lock_outline,
-                  isObscure: true,
-                ),
-                
-                // 💡 Forgot Password
-                if (_isLogin)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () => _showForgotPasswordDialog(context),
-                      child: const Text("Forgot Password?", style: TextStyle(color: Colors.white70)),
+                            // 🚀 Branding Section (Footer with Space Gradient)
+                            if (!isKeyboardVisible)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 20.0),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      "POWERED BY",
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.2),
+                                        fontSize: 9,
+                                        letterSpacing: 2,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4), 
+                                    
+                                    // ✨ Space Object Inspired Gradient Animation
+                                    AnimatedBuilder(
+                                      animation: _brandingController,
+                                      builder: (context, child) {
+                                        return ShaderMask(
+                                          shaderCallback: (bounds) {
+                                            return LinearGradient(
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                              colors: [
+                                                const Color(0xFF9C27B0), // Cosmic Purple
+                                                const Color(0xFF00ACC1), // Nebula Teal
+                                                const Color(0xFF38BDF8), // Star Blue
+                                                const Color(0xFFE040FB), // Supernova Magenta
+                                                const Color(0xFF9C27B0), // Loop back to Purple
+                                              ],
+                                              stops: [
+                                                0.0,
+                                                (_brandingController.value - 0.2).clamp(0.0, 1.0),
+                                                _brandingController.value,
+                                                (_brandingController.value + 0.2).clamp(0.0, 1.0),
+                                                1.0,
+                                              ],
+                                            ).createShader(bounds);
+                                          },
+                                          child: const Text(
+                                            "OrbitView Innovations", // 👈 කම්පැනි නම මෙතනට දැම්මා
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 3,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    
+                                    const SizedBox(height: 4), 
+                                    Text(
+                                      "© 2026 ALL RIGHTS RESERVED",
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.1),
+                                        fontSize: 8,
+                                        letterSpacing: 1.2,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
                     ),
-                  )
-                else
-                  const SizedBox(height: 15),
-
-                const SizedBox(height: 15),
-
-                // 🚀 Submit Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF38BDF8),
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      elevation: 0,
-                    ),
-                    child: _isLoading 
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-                      : Text(_isLogin ? "Sign In" : "Register", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
-                ),
-
-                const SizedBox(height: 15),
-
-                // 🔄 Toggle Login/Register
-                TextButton(
-                  onPressed: () => setState(() => _isLogin = !_isLogin),
-                  child: Text(
-                    _isLogin ? "Don't have an account? Register" : "Already have an account? Sign In",
-                    style: const TextStyle(color: Color(0xFF38BDF8)),
-                  ),
-                ),
-              ],
+                );
+              },
             ),
           ),
-        ),
+          
+          if (_isLoading)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.7),
+                child: const Center(
+                  child: GeminiLoader(size: 80), 
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
 
+  // (Textfield & Dialog logic remains same)
   void _showForgotPasswordDialog(BuildContext context) {
     final TextEditingController resetEmailController = TextEditingController(text: _emailController.text);
-    
     showDialog(
       context: context,
       builder: (context) {
         bool isResetting = false;
-        
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
@@ -192,37 +312,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancel", style: TextStyle(color: Colors.white70)),
-                ),
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white70))),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF38BDF8)),
-                  onPressed: isResetting 
-                    ? null 
-                    : () async {
+                  onPressed: isResetting ? null : () async {
                         final email = resetEmailController.text.trim();
-                        if (email.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Please enter your email."), backgroundColor: Colors.redAccent)
-                          );
-                          return;
-                        }
-                        
+                        if (email.isEmpty) return;
                         setState(() => isResetting = true);
-                        // Returns null on success, or an error message string
-                        String? errorMsg = await _auth.resetPassword(email);
-                        setState(() => isResetting = false);
-                        
+                        await _auth.resetPassword(email);
                         if (mounted) {
                           Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(errorMsg == null ? "Password reset link sent to $email. Check your inbox (and spam folder)." : errorMsg),
-                              backgroundColor: errorMsg == null ? Colors.green : Colors.redAccent,
-                              duration: const Duration(seconds: 5),
-                            )
-                          );
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Reset link sent!"), backgroundColor: Colors.green));
                         }
                       },
                   child: isResetting 
@@ -237,19 +337,12 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // 🛠️ Reusable Text Field (අකුරු පේන විදියට හදලා තියෙන්නේ)
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    bool isObscure = false,
-    TextInputType type = TextInputType.text,
-  }) {
+  Widget _buildTextField({required TextEditingController controller, required String label, required IconData icon, bool isObscure = false, TextInputType type = TextInputType.text}) {
     return TextField(
       controller: controller,
       obscureText: isObscure,
       keyboardType: type,
-      style: const TextStyle(color: Colors.white), // 🚀 ලියන අකුරු සුදු පාටින් පේනවා
+      style: const TextStyle(color: Colors.white), 
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.white38),

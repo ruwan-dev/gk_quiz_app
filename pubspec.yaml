@@ -25,11 +25,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # Fonts කොටස මෙතනට එකතු කරන්න
-  fonts:
-    - family: SinhalaFont
-      fonts:
+  # 🖼️ ඔයාගේ Logo එකේ Path එක විතරක් මෙතන තියෙනවා
+  assets:
+    - assets/logo.png
 
-        - asset: assets/fonts/4u-Ananda UltraBold.ttf
-
-          weight: 700
+  # 🚀 සිංහල ෆොන්ට් එක මෙතනින් සම්පූර්ණයෙන්ම අයින් කළා

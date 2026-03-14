@@ -395,7 +395,7 @@ class _AnimatedPremiumPopupState extends State<AnimatedPremiumPopup> with Single
                   children: [
                     Text("Bank: Bank of Ceylon (BOC) / ලංකා බැංකුව", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                     SizedBox(height: 5),
-                    Text("Name: GK Quiz App", style: TextStyle(color: Colors.white70, fontSize: 13)),
+                    Text("Name: AstroQuiz", style: TextStyle(color: Colors.white70, fontSize: 13)),
                     SizedBox(height: 5),
                     Text("Account No: 1234567890", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2)),
                   ],
