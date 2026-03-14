@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'dart:async'; // 🚀 Timer එක සඳහා අවශ්‍යයි
 import '../utils/app_constants.dart';
 
 class PremiumScreen extends StatefulWidget {
@@ -12,13 +13,14 @@ class PremiumScreen extends StatefulWidget {
 class _PremiumScreenState extends State<PremiumScreen> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   int _featureIndex = 0; 
+  Timer? _autoPlayTimer; // 🚀 Auto-swipe Timer එක
 
   final List<Map<String, dynamic>> _features = [
     {
       'icon': Icons.lock_open_rounded,
       'title': "Access Premium Papers",
       'enDesc': "Unlock and practice all exclusive premium past papers and model papers.",
-      'siDesc': "සියලුම  අනුමාන ප්‍රශ්න පත්‍ර සඳහා පිවිසුම ලබාගන්න.",
+      'siDesc': "සියලුම අනුමාන ප්‍රශ්න පත්‍ර සඳහා පිවිසුම ලබාගන්න.",
     },
     {
       'icon': Icons.verified_rounded,
@@ -50,12 +52,45 @@ class _PremiumScreenState extends State<PremiumScreen> with SingleTickerProvider
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: const Duration(seconds: 3))..repeat();
+    _startAutoPlay(); // 🚀 Screen එක Load වෙද්දීම Timer එක පටන් ගන්නවා
   }
 
   @override
   void dispose() {
+    _autoPlayTimer?.cancel(); // 🚀 Screen එකෙන් අයින් වෙද්දී Timer එක නවත්වනවා
     _controller.dispose();
     super.dispose();
+  }
+
+  // 🚀 තත්පර 10කට සැරයක් Feature එක මාරු කරන Function එක
+  void _startAutoPlay() {
+    _autoPlayTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      if (mounted) {
+        setState(() {
+          _featureIndex = (_featureIndex + 1) % _features.length;
+        });
+      }
+    });
+  }
+
+  // 🚀 User මැනුවල් Swipe කළොත් Timer එක Reset කරනවා
+  void _resetTimer() {
+    _autoPlayTimer?.cancel();
+    _startAutoPlay();
+  }
+
+  void _nextFeature() {
+    _resetTimer();
+    setState(() {
+      _featureIndex = (_featureIndex + 1) % _features.length;
+    });
+  }
+
+  void _prevFeature() {
+    _resetTimer();
+    setState(() {
+      _featureIndex = (_featureIndex - 1 + _features.length) % _features.length;
+    });
   }
 
   Widget _buildFeatureContent(int index) {
@@ -99,18 +134,6 @@ class _PremiumScreenState extends State<PremiumScreen> with SingleTickerProvider
     );
   }
 
-  void _nextFeature() {
-    if (_featureIndex < _features.length - 1) {
-      setState(() => _featureIndex++);
-    }
-  }
-
-  void _prevFeature() {
-    if (_featureIndex > 0) {
-      setState(() => _featureIndex--);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -126,7 +149,7 @@ class _PremiumScreenState extends State<PremiumScreen> with SingleTickerProvider
           ),
           const SizedBox(height: 8),
           const Text(
-            "Swipe or click to explore features", 
+            "Explore features (Auto-swiping)", 
             style: TextStyle(color: Color(0xFF38BDF8), fontSize: 13),
           ),
           const SizedBox(height: 20),
@@ -163,7 +186,7 @@ class _PremiumScreenState extends State<PremiumScreen> with SingleTickerProvider
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
+                        duration: const Duration(milliseconds: 600), // 🚀 Fade effect එකට කාලය වැඩි කළා
                         transitionBuilder: (Widget child, Animation<double> animation) {
                           return FadeTransition(opacity: animation, child: child);
                         },
@@ -173,14 +196,13 @@ class _PremiumScreenState extends State<PremiumScreen> with SingleTickerProvider
                     
                     const SizedBox(height: 30),
                     
-                    // 🚀 Arrows සහ Dots එකට තියෙන Row එක
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         IconButton(
                           icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                          color: _featureIndex > 0 ? const Color(0xFF38BDF8) : Colors.white12,
-                          onPressed: _featureIndex > 0 ? _prevFeature : null,
+                          color: const Color(0xFF38BDF8),
+                          onPressed: _prevFeature,
                         ),
                         
                         Row(
@@ -193,8 +215,8 @@ class _PremiumScreenState extends State<PremiumScreen> with SingleTickerProvider
                         
                         IconButton(
                           icon: const Icon(Icons.arrow_forward_ios_rounded),
-                          color: _featureIndex < _features.length - 1 ? const Color(0xFF38BDF8) : Colors.white12,
-                          onPressed: _featureIndex < _features.length - 1 ? _nextFeature : null,
+                          color: const Color(0xFF38BDF8),
+                          onPressed: _nextFeature,
                         ),
                       ],
                     ),
@@ -232,6 +254,8 @@ class _PremiumScreenState extends State<PremiumScreen> with SingleTickerProvider
                 Text("Bank: ${AppConstants.bankName}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                 const SizedBox(height: 8),
                 Text("Account No: ${AppConstants.bankAccountNo}", style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 1.5)),
+                const SizedBox(height: 5),
+                Text("Name: ${AppConstants.bankAccountName}", style: const TextStyle(color: Colors.white70, fontSize: 13)),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 15.0),
                   child: Divider(color: Colors.white10, thickness: 1),

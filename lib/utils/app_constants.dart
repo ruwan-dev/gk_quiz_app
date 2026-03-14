@@ -8,4 +8,5 @@ class AppConstants {
 
   static const String appVersion = "Version 1.0.0";
   static const String companyName = "ORBITVIEW INNOVATIONS";
+  static const String bankAccountName = "S.R. Kumara";
 }
