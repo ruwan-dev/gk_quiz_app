@@ -127,12 +127,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   const SizedBox(height: 20),
                                   // ✨ ඔයාගේ අලුත් Welcome Message එක
                                   Text(
-                                    _isLogin ? "Hello Future Leader!" : "Join to the Game of Knowledge!",
+                                    _isLogin ? "Hello Future Leader !" : "Join to the Game of Knowledge!",
                                     style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    _isLogin ? "Ready to conquer today's quiz?" : "Start your journey to the stars",
+                                    _isLogin ? "Join to the Game of Knowledge !" : "Start your journey to the stars",
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(fontSize: 14, color: Colors.white38),
                                   ),

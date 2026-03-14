@@ -82,9 +82,10 @@ class _HelpScreenState extends State<HelpScreen> {
               style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
+            // 🚀 මෙන්න මෙතන තමයි භාෂා දෙකෙන්ම උපදෙස් ඇතුළත් කළේ
             const Text(
-              "Found a bug or have a suggestion? Let us know below. The admin will review it.",
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+              "Any Help or Found a bug or have a suggestion? Let us know below. Please include a contact phone number so the admin can reach out to you.\n\nඔබට සහයක් අවශ්‍යද? නැතහොත් යම් දෝෂයක් හමුවුණාද? නැතහොත් යෝජනාවක් තිබෙනවාද? ඒ බව පහතින් අපට දන්වන්න. කරුණාකර ඔබව සම්බන්ධ කරගත හැකි දුරකථන අංකයක්ද ඇතුළත් කරන්න.",
+              style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
             ),
             const SizedBox(height: 30),
             
@@ -99,10 +100,10 @@ class _HelpScreenState extends State<HelpScreen> {
                 children: [
                   TextField(
                     controller: _issueController,
-                    maxLines: 5,
+                    maxLines: 6, // අදහස ලියන්න තව පොඩි ඉඩක් දුන්නා
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      hintText: "Describe your issue here...",
+                      hintText: "Describe your issue and enter your phone number here...\nඔබේ ගැටලුව සහ දුරකථන අංකය මෙහි ඇතුළත් කරන්න...",
                       hintStyle: const TextStyle(color: Colors.white38),
                       filled: true,
                       fillColor: Colors.black12,
