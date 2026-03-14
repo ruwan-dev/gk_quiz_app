@@ -5,7 +5,8 @@ const CACHE_NAME = 'flutter-app-cache';
 
 const RESOURCES = {"assets/AssetManifest.bin": "4bb2d72aff6c08d18293a61a80f6821c",
 "assets/AssetManifest.bin.json": "856c09d28c14a2dbe28c9d6c6be3af5d",
-"assets/assets/logo.png": "7e99aea9da2966c8145c696a1d201649",
+"assets/assets/fonts/4u-Ananda%2520UltraBold.ttf": "4ee83ed891a448dc49d859992b961594",
+"assets/assets/logo.png": "520a214d07c91eb8caa75b506745591f",
 "assets/FontManifest.json": "7b2a36307916a9721811788013e65289",
 "assets/fonts/MaterialIcons-Regular.otf": "46519cc98d36484226b1125e07424a1d",
 "assets/NOTICES": "99353ae9aa23d21b7d2aeeafd6402e75",
@@ -25,7 +26,7 @@ const RESOURCES = {"assets/AssetManifest.bin": "4bb2d72aff6c08d18293a61a80f6821c
 "canvaskit/skwasm_heavy.wasm": "b0be7910760d205ea4e011458df6ee01",
 "favicon.png": "5dcef449791fa27946b3d35ad8803796",
 "flutter.js": "24bc71911b75b5f8135c949e27a2984e",
-"flutter_bootstrap.js": "11b13e1395b5fabbef8b1f13bded907a",
+"flutter_bootstrap.js": "9bdaecea5ca42c827f6e04782c108064",
 "icons/Icon-192.png": "ac9a721a12bbc803b44f645561ecb1e1",
 "icons/Icon-512.png": "96e752610906ba2a93c65f8abe1645f1",
 "icons/Icon-maskable-192.png": "c457ef57daa1d16f64b27b786ec2ea3c",
