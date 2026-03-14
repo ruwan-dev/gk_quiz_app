@@ -8,6 +8,7 @@ import 'admin_panel.dart';
 import 'login_screen.dart';
 import 'leaderboard_screen.dart';
 import 'profile_screen.dart'; 
+import 'premium_screen.dart'; // 🚀 අලුත් Premium Screen එක Import කළා
 import '../main.dart';
 import '../theme/app_theme.dart';
 import '../utils/gemini_loader.dart';
@@ -20,29 +21,39 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
+  String _currentLabel = "Home";
 
-  List<Widget> _getScreens(bool isAdmin) {
-    return [
-      const HomeTab(),
-      const LeaderboardScreen(),
-      const ProfileScreen(), 
-      if (isAdmin) const AdminPanel(),
-    ];
+  Widget _getScreen(bool isAdmin) {
+    switch (_currentLabel) {
+      case "Home": return HomeTab(onNavigate: _onNavigateToTab); // 🚀 Tab මාරු කරන්න function එක pass කරනවා
+      case "Rank": return const LeaderboardScreen();
+      case "Premium": return const PremiumScreen(); // 🚀 Premium Screen එක මෙතනට දුන්නා
+      case "Profile": return const ProfileScreen();
+      case "Admin": return isAdmin ? const AdminPanel() : HomeTab(onNavigate: _onNavigateToTab);
+      default: return HomeTab(onNavigate: _onNavigateToTab);
+    }
   }
 
-  void _onItemTapped(int index, bool isAdmin, bool isDeactivated) {
-    int logoutIndex = isAdmin ? 4 : 3;
-    if (index == logoutIndex) {
-      _showLogoutDialog();
-      return;
-    }
+  // 🚀 වෙනත් Widget එකකින් Tab එක මාරු කරන්න අවශ්‍ය වුණොත් මේක පාවිච්චි කරනවා
+  void _onNavigateToTab(String label) {
+    setState(() {
+      _currentLabel = label;
+    });
+  }
+
+  void _onItemTapped(String label, bool isDeactivated, BuildContext context) {
     if (isDeactivated) {
       _showDeactivatedSnackBar();
       return;
     }
+    if (label == "Logout") {
+      _showLogoutDialog();
+      return;
+    }
+    
+    // 🚀 දැන් Premium Click කළාම කෙලින්ම Tab එක මාරු වෙනවා (Popup නෑ)
     setState(() {
-      _selectedIndex = index;
+      _currentLabel = label;
     });
   }
 
@@ -90,12 +101,32 @@ class _HomeScreenState extends State<HomeScreen> {
       stream: FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).snapshots(),
       builder: (context, snapshot) {
         bool isDeactivated = false;
+        bool isPremium = false;
+        
         if (snapshot.hasData && snapshot.data!.exists) {
           final data = snapshot.data!.data() as Map<String, dynamic>?;
           isDeactivated = data?['isDeactivated'] ?? false;
+          isPremium = data?['isPremium'] ?? false;
         }
 
-        final List<Widget> screens = _getScreens(isAdmin);
+        List<BottomNavigationBarItem> navItems = [
+          const BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          const BottomNavigationBarItem(icon: Icon(Icons.leaderboard), label: "Rank"),
+          const BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+        ];
+
+        if (!isPremium) {
+          navItems.add(const BottomNavigationBarItem(icon: AnimatedPremiumIcon(), label: "Premium"));
+        }
+
+        if (isAdmin) {
+          navItems.add(const BottomNavigationBarItem(icon: Icon(Icons.admin_panel_settings), label: "Admin"));
+        }
+
+        navItems.add(const BottomNavigationBarItem(icon: Icon(Icons.logout, color: Colors.redAccent), label: "Logout"));
+
+        int currentIndex = navItems.indexWhere((item) => item.label == _currentLabel);
+        if (currentIndex == -1) currentIndex = 0;
 
         return Scaffold(
           backgroundColor: Colors.transparent,
@@ -130,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     absorbing: isDeactivated,
                     child: Opacity(
                       opacity: isDeactivated ? 0.4 : 1.0,
-                      child: screens[_selectedIndex],
+                      child: _getScreen(isAdmin),
                     ),
                   ),
                 ),
@@ -144,15 +175,11 @@ class _HomeScreenState extends State<HomeScreen> {
               type: BottomNavigationBarType.fixed,
               selectedItemColor: isDeactivated ? Colors.white24 : const Color(0xFF38BDF8),
               unselectedItemColor: Colors.white24,
-              currentIndex: _selectedIndex,
-              onTap: (index) => _onItemTapped(index, isAdmin, isDeactivated),
-              items: [
-                const BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-                const BottomNavigationBarItem(icon: Icon(Icons.leaderboard), label: "Rank"),
-                const BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-                if (isAdmin) const BottomNavigationBarItem(icon: Icon(Icons.admin_panel_settings), label: "Admin"),
-                const BottomNavigationBarItem(icon: Icon(Icons.logout, color: Colors.redAccent), label: "Logout"),
-              ],
+              currentIndex: currentIndex,
+              selectedFontSize: 10,
+              unselectedFontSize: 10,
+              onTap: (index) => _onItemTapped(navItems[index].label ?? "", isDeactivated, context),
+              items: navItems,
             ),
           ),
         );
@@ -161,21 +188,53 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+class AnimatedPremiumIcon extends StatefulWidget {
+  const AnimatedPremiumIcon({super.key});
+  @override
+  State<AnimatedPremiumIcon> createState() => _AnimatedPremiumIconState();
+}
+
+class _AnimatedPremiumIconState extends State<AnimatedPremiumIcon> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return ShaderMask(
+          shaderCallback: (bounds) => SweepGradient(
+            colors: const [Colors.amber, Colors.orangeAccent, Color(0xFF10B981), Colors.amber],
+            transform: GradientRotation(_controller.value * 2 * math.pi),
+          ).createShader(bounds),
+          child: const Icon(Icons.workspace_premium, color: Colors.white),
+        );
+      }
+    );
+  }
+}
+
 class HomeTab extends StatelessWidget {
-  const HomeTab({super.key});
+  final Function(String) onNavigate; // 🚀 Tab මාරු කරන්න function එක
+  const HomeTab({super.key, required this.onNavigate});
 
   String _getGreeting() {
     var hour = DateTime.now().hour;
     if (hour < 12) return 'Good Morning';
     if (hour < 17) return 'Good Afternoon';
     return 'Good Evening';
-  }
-
-  void _showPremiumPopup(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => const AnimatedPremiumPopup(),
-    );
   }
 
   @override
@@ -253,7 +312,7 @@ class HomeTab extends StatelessWidget {
                   if (!isPremium) ...[
                     const SizedBox(height: 25),
                     GestureDetector(
-                      onTap: () => _showPremiumPopup(context),
+                      onTap: () => onNavigate("Premium"), // 🚀 දැන් මේක Click කළාමත් Premium Tab එකට යනවා
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
                         decoration: BoxDecoration(
@@ -353,55 +412,6 @@ class HomeTab extends StatelessWidget {
   }
 }
 
-class AnimatedPremiumPopup extends StatefulWidget {
-  const AnimatedPremiumPopup({super.key});
-  @override
-  State<AnimatedPremiumPopup> createState() => _AnimatedPremiumPopupState();
-}
-
-class _AnimatedPremiumPopupState extends State<AnimatedPremiumPopup> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 3))..repeat();
-  }
-  @override
-  void dispose() { _controller.dispose(); super.dispose(); }
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) => CustomPaint(
-          painter: GradientBorderPainter(angle: _controller.value * 2 * math.pi, strokeWidth: 3.0, radius: 20, gradientColors: const [Color(0xFF10B981), Colors.amber, Color(0xFF059669), Colors.amber]),
-          child: child,
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(color: const Color(0xFF0F172A), borderRadius: BorderRadius.circular(20)),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFF10B981).withOpacity(0.1), shape: BoxShape.circle), child: const Icon(Icons.workspace_premium, color: Colors.amber, size: 50)),
-            const SizedBox(height: 15),
-            const Text("Unlock Premium!", textAlign: TextAlign.center, style: TextStyle(color: Colors.amber, fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            const Text("Please deposit the fee and WhatsApp the payment receipt to unlock all app features.\n\nබැංකු ගිණුමට මුදල් ගෙවා ලදුපත WhatsApp කරන්න.", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.5)),
-            const SizedBox(height: 20),
-            Container(width: double.infinity, padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.white.withOpacity(0.03), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4))), child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text("Bank: BOC / ලංකා බැංකුව", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-              SizedBox(height: 5),
-              Text("Account No: 1234567890", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2)),
-            ])),
-            const SizedBox(height: 25),
-            SizedBox(width: double.infinity, height: 45, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: () => Navigator.pop(context), child: const Text("Got it!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15))))
-          ]),
-        ),
-      ),
-    );
-  }
-}
-
 class AnimatedCategoryCard extends StatefulWidget {
   final String title; final IconData icon; final Color iconColor; final String catId; final bool isNew; final bool isDisabled;
   const AnimatedCategoryCard({super.key, required this.title, required this.icon, required this.iconColor, required this.catId, this.isNew = false, this.isDisabled = false});
@@ -482,7 +492,6 @@ class _AnimatedCategoryCardState extends State<AnimatedCategoryCard> with Single
             child: InkWell(
               borderRadius: BorderRadius.circular(20),
               onTap: () {
-                // isDisabled නම් SnackBar එක පෙන්නන එක අයින් කළා. දැන් කිසිම දෙයක් වෙන්නේ නැහැ.
                 if (!widget.isDisabled) {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => MainBackgroundWrapper(child: PapersScreen(categoryId: widget.catId, categoryName: widget.title))));
                 }
