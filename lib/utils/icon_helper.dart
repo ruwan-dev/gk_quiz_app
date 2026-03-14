@@ -13,6 +13,14 @@ class IconHelper {
     'sports': Icons.emoji_events,
     'art': Icons.palette,
     'star': Icons.auto_awesome,
+    'iq': Icons.psychology, // 🧠 IQ සඳහා
+    'puzzle': Icons.extension,
+    'idea': Icons.emoji_objects,
+    'iq_logic': Icons.auto_graph,      // 📈 Logic & Patterns
+    'iq_solve': Icons.troubleshoot,    // 🔍 Problem Solving
+    'iq_sharp': Icons.bolt,
+    'iq_brain': Icons.psychology,      // 🧠 පැතිකඩ පෙනුම
+    'iq_mind': Icons.psychology_alt,
   };
 
   static IconData getIcon(String? iconName) {
