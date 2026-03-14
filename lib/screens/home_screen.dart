@@ -11,7 +11,6 @@ import 'profile_screen.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
 import '../utils/gemini_loader.dart';
-import '../utils/app_constants.dart'; // 🚀 App Constants ෆයිල් එක Import කළා
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -369,7 +368,6 @@ class _AnimatedPremiumPopupState extends State<AnimatedPremiumPopup> with Single
   }
   @override
   void dispose() { _controller.dispose(); super.dispose(); }
-  
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -390,51 +388,13 @@ class _AnimatedPremiumPopupState extends State<AnimatedPremiumPopup> with Single
             const SizedBox(height: 12),
             const Text("Please deposit the fee and WhatsApp the payment receipt to unlock all app features.\n\nබැංකු ගිණුමට මුදල් ගෙවා ලදුපත WhatsApp කරන්න.", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.5)),
             const SizedBox(height: 20),
-            
-            // 🚀 අලුත් Bank & WhatsApp Details (AppConstants භාවිතයෙන්)
-            Container(
-              width: double.infinity, 
-              padding: const EdgeInsets.all(15), 
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.03), 
-                borderRadius: BorderRadius.circular(12), 
-                border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4))
-              ), 
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, 
-                children: [
-                  Text("Bank: ${AppConstants.bankName}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                  const SizedBox(height: 5),
-                  Text("Account No: ${AppConstants.bankAccountNo}", style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2)),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8.0),
-                    child: Divider(color: Colors.white10, thickness: 1),
-                  ),
-                  Row(
-                    children: [
-                      const Icon(Icons.chat_bubble_outline, color: Color(0xFF25D366), size: 16),
-                      const SizedBox(width: 8),
-                      Text("WhatsApp: ${AppConstants.phoneNumber}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                    ],
-                  ),
-                ]
-              )
-            ),
-            
+            Container(width: double.infinity, padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.white.withOpacity(0.03), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4))), child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text("Bank: BOC / ලංකා බැංකුව", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              SizedBox(height: 5),
+              Text("Account No: 1234567890", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2)),
+            ])),
             const SizedBox(height: 25),
-            SizedBox(
-              width: double.infinity, 
-              height: 45, 
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF10B981), 
-                  foregroundColor: Colors.white, 
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
-                ), 
-                onPressed: () => Navigator.pop(context), 
-                child: const Text("Got it!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15))
-              )
-            )
+            SizedBox(width: double.infinity, height: 45, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: () => Navigator.pop(context), child: const Text("Got it!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15))))
           ]),
         ),
       ),
@@ -522,6 +482,7 @@ class _AnimatedCategoryCardState extends State<AnimatedCategoryCard> with Single
             child: InkWell(
               borderRadius: BorderRadius.circular(20),
               onTap: () {
+                // isDisabled නම් SnackBar එක පෙන්නන එක අයින් කළා. දැන් කිසිම දෙයක් වෙන්නේ නැහැ.
                 if (!widget.isDisabled) {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => MainBackgroundWrapper(child: PapersScreen(categoryId: widget.catId, categoryName: widget.title))));
                 }

@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'quiz_screen.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_constants.dart'; // 🚀 App Constants ෆයිල් එක Import කළා
 
 class PapersScreen extends StatelessWidget {
   final String categoryId;
@@ -327,7 +328,7 @@ class _AnimatedPremiumPopupState extends State<AnimatedPremiumPopup> with Single
   @override
   void dispose() {
     _controller.dispose();
-    super.initState();
+    super.dispose();
   }
 
   @override
@@ -371,7 +372,7 @@ class _AnimatedPremiumPopupState extends State<AnimatedPremiumPopup> with Single
               ),
               const SizedBox(height: 15),
               const Text(
-                "Unlock Premium!\nPremium ලබා ගන්න!",
+                "Unlock Premium!",
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.amber, fontSize: 20, fontWeight: FontWeight.bold),
               ),
@@ -382,41 +383,37 @@ class _AnimatedPremiumPopupState extends State<AnimatedPremiumPopup> with Single
                 style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.5),
               ),
               const SizedBox(height: 20),
+              
+              // 🚀 මෙතනින් තමයි AppConstants වලින් Bank & WhatsApp details අරගන්නේ
               Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(15),
+                width: double.infinity, 
+                padding: const EdgeInsets.all(15), 
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.03),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4)),
-                ),
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  color: Colors.white.withOpacity(0.03), 
+                  borderRadius: BorderRadius.circular(12), 
+                  border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4))
+                ), 
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start, 
                   children: [
-                    Text("Bank: Bank of Ceylon (BOC) / ලංකා බැංකුව", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                    SizedBox(height: 5),
-                    Text("Name: AstroQuiz", style: TextStyle(color: Colors.white70, fontSize: 13)),
-                    SizedBox(height: 5),
-                    Text("Account No: 1234567890", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2)),
-                  ],
-                ),
+                    Text("Bank: ${AppConstants.bankName}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 5),
+                    Text("Account No: ${AppConstants.bankAccountNo}", style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2)),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: Divider(color: Colors.white10, thickness: 1),
+                    ),
+                    Row(
+                      children: [
+                        const Icon(Icons.chat_bubble_outline, color: Color(0xFF25D366), size: 16),
+                        const SizedBox(width: 8),
+                        Text("WhatsApp: ${AppConstants.phoneNumber}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                      ],
+                    ),
+                  ]
+                )
               ),
-              const SizedBox(height: 15),
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.message, color: Color(0xFF10B981), size: 20),
-                    SizedBox(width: 8),
-                    Text("WhatsApp: 07X XXX XXXX", style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
+              
               const SizedBox(height: 25),
               SizedBox(
                 width: double.infinity,
