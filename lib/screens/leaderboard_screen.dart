@@ -1,13 +1,14 @@
-import 'dart:ui'; // 🚀 Blur effect එක සඳහා අත්‍යවශ්‍යයි
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../utils/app_constants.dart'; // 🚀 අලුත් Constants ෆයිල් එක
+import '../utils/app_constants.dart';
 
 class LeaderboardScreen extends StatelessWidget {
-  const LeaderboardScreen({super.key});
+  final Function(String) onNavigate; // 🚀 Tab මාරු කරන්න function එක
 
-  // 🚀 Ranking හැදෙන විදිය පෙන්වන Banner එක
+  const LeaderboardScreen({super.key, required this.onNavigate});
+
   void _showRankingInfo(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -80,73 +81,6 @@ class LeaderboardScreen extends StatelessWidget {
     );
   }
 
-  // 🚀 Premium ලබාගැනීමේ බැංකු විස්තර පෙන්වන Dialog එක (AppConstants භාවිතයෙන්)
-  void _showPremiumPromoDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        contentPadding: const EdgeInsets.all(20), 
-        content: Column(
-          mainAxisSize: MainAxisSize.min, 
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12), 
-              decoration: BoxDecoration(color: const Color(0xFF10B981).withOpacity(0.1), shape: BoxShape.circle), 
-              child: const Icon(Icons.workspace_premium, color: Colors.amber, size: 50)
-            ),
-            const SizedBox(height: 15),
-            const Text(
-              "Unlock Premium!", 
-              textAlign: TextAlign.center, 
-              style: TextStyle(color: Colors.amber, fontSize: 20, fontWeight: FontWeight.bold)
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              "Please deposit the fee and WhatsApp the payment receipt to unlock all app features.\n\nබැංකු ගිණුමට මුදල් ගෙවා ලදුපත WhatsApp කරන්න.", 
-              textAlign: TextAlign.center, 
-              style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.5)
-            ),
-            const SizedBox(height: 20),
-            Container(
-              width: double.infinity, 
-              padding: const EdgeInsets.all(15), 
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.03), 
-                borderRadius: BorderRadius.circular(12), 
-                border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4))
-              ), 
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, 
-                children: [
-                  // 🚀 AppConstants වලින් Bank Data ලබා ගනී
-                  Text("Bank: ${AppConstants.bankName}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                  const SizedBox(height: 5),
-                  Text("Account No: ${AppConstants.bankAccountNo}", style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2)),
-                ]
-              )
-            ),
-            const SizedBox(height: 25),
-            SizedBox(
-              width: double.infinity, 
-              height: 45, 
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF10B981), 
-                  foregroundColor: Colors.white, 
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
-                ), 
-                onPressed: () => Navigator.pop(context), 
-                child: const Text("Got it!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15))
-              )
-            )
-          ]
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
@@ -154,7 +88,6 @@ class LeaderboardScreen extends StatelessWidget {
     return Column(
       children: [
         const SizedBox(height: 15),
-        // 🏆 Title සහ Info Icon එක සහිත කොටස
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
@@ -187,7 +120,6 @@ class LeaderboardScreen extends StatelessWidget {
                 return const Center(child: Text("No rankings yet!", style: TextStyle(color: Colors.white70)));
               }
 
-              // Deactivated users ලාව අයින් කරනවා
               final docs = snapshot.data!.docs.where((doc) {
                 final data = doc.data() as Map<String, dynamic>;
                 return data['isDeactivated'] != true;
@@ -197,7 +129,6 @@ class LeaderboardScreen extends StatelessWidget {
                 return const Center(child: Text("No rankings yet!", style: TextStyle(color: Colors.white70)));
               }
 
-              // 🚀 Current user ගේ දත්ත හොයාගන්නවා
               bool isCurrentUserPremium = false;
               Map<String, dynamic>? myData;
               int myRank = 0;
@@ -206,14 +137,13 @@ class LeaderboardScreen extends StatelessWidget {
                 if (docs[i].id == currentUserId) {
                   myData = docs[i].data() as Map<String, dynamic>;
                   isCurrentUserPremium = myData['isPremium'] ?? false;
-                  myRank = i + 1; // Rank එක Index එකෙන් හැදෙනවා
+                  myRank = i + 1; 
                   break;
                 }
               }
 
               return Column(
                 children: [
-                  // 🚀 Main List එක (මෙහි අන් අයගේ Ranks පෙන්වයි)
                   Expanded(
                     child: ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -229,7 +159,6 @@ class LeaderboardScreen extends StatelessWidget {
                         final bool isPremium = data['isPremium'] ?? false;
                         final String? avatarUrl = data['avatarUrl'];
 
-                        // 🚀 Premium නැති නම්, තමන්ගේ Rank එක Main List එකෙන් සම්පූර්ණයෙන්ම හංගනවා
                         if (isMe && !isCurrentUserPremium) {
                           return const SizedBox.shrink();
                         }
@@ -244,7 +173,6 @@ class LeaderboardScreen extends StatelessWidget {
                           child: ListTile(
                             contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
                             
-                            // Avatar එක සහ පැහැදිලි Rank එක
                             leading: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -268,7 +196,6 @@ class LeaderboardScreen extends StatelessWidget {
                               ],
                             ),
                             
-                            // Name සහ Verified Badge එක
                             title: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -300,7 +227,6 @@ class LeaderboardScreen extends StatelessWidget {
                     ),
                   ),
 
-                  // 🚀 යටින් පෙන්වන බොඳ කළ Rank එක සහ Button එක (Premium නැති අයට පමණක්)
                   if (myData != null && !isCurrentUserPremium)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
@@ -313,7 +239,6 @@ class LeaderboardScreen extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          // බොඳ කරපු Rank අංකය
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
@@ -330,7 +255,6 @@ class LeaderboardScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 15),
                           
-                          // බොඳ කරපු Score එක
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,13 +270,12 @@ class LeaderboardScreen extends StatelessWidget {
                             ),
                           ),
                           
-                          // View Rank Button
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF10B981),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                            onPressed: () => _showPremiumPromoDialog(context),
+                            onPressed: () => onNavigate("Premium"), // 🚀 කෙලින්ම Premium Tab එකට යනවා
                             child: const Text("View Rank", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                           )
                         ],

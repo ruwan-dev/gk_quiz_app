@@ -8,7 +8,7 @@ import 'admin_panel.dart';
 import 'login_screen.dart';
 import 'leaderboard_screen.dart';
 import 'profile_screen.dart'; 
-import 'premium_screen.dart'; // 🚀 අලුත් Premium Screen එක Import කළා
+import 'premium_screen.dart'; 
 import '../main.dart';
 import '../theme/app_theme.dart';
 import '../utils/gemini_loader.dart';
@@ -25,16 +25,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _getScreen(bool isAdmin) {
     switch (_currentLabel) {
-      case "Home": return HomeTab(onNavigate: _onNavigateToTab); // 🚀 Tab මාරු කරන්න function එක pass කරනවා
-      case "Rank": return const LeaderboardScreen();
-      case "Premium": return const PremiumScreen(); // 🚀 Premium Screen එක මෙතනට දුන්නා
-      case "Profile": return const ProfileScreen();
-      case "Admin": return isAdmin ? const AdminPanel() : HomeTab(onNavigate: _onNavigateToTab);
-      default: return HomeTab(onNavigate: _onNavigateToTab);
+      case "Home": 
+        return HomeTab(onNavigate: _onNavigateToTab); 
+      case "Rank": 
+        return LeaderboardScreen(onNavigate: _onNavigateToTab); // 🚀 onNavigate පරාමිතිය ඇතුළත් කළා
+      case "Premium": 
+        return const PremiumScreen(); 
+      case "Profile": 
+        return const ProfileScreen();
+      case "Admin": 
+        return isAdmin ? const AdminPanel() : HomeTab(onNavigate: _onNavigateToTab);
+      default: 
+        return HomeTab(onNavigate: _onNavigateToTab);
     }
   }
 
-  // 🚀 වෙනත් Widget එකකින් Tab එක මාරු කරන්න අවශ්‍ය වුණොත් මේක පාවිච්චි කරනවා
   void _onNavigateToTab(String label) {
     setState(() {
       _currentLabel = label;
@@ -51,7 +56,6 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
     
-    // 🚀 දැන් Premium Click කළාම කෙලින්ම Tab එක මාරු වෙනවා (Popup නෑ)
     setState(() {
       _currentLabel = label;
     });
@@ -227,7 +231,7 @@ class _AnimatedPremiumIconState extends State<AnimatedPremiumIcon> with SingleTi
 }
 
 class HomeTab extends StatelessWidget {
-  final Function(String) onNavigate; // 🚀 Tab මාරු කරන්න function එක
+  final Function(String) onNavigate; 
   const HomeTab({super.key, required this.onNavigate});
 
   String _getGreeting() {
@@ -312,7 +316,7 @@ class HomeTab extends StatelessWidget {
                   if (!isPremium) ...[
                     const SizedBox(height: 25),
                     GestureDetector(
-                      onTap: () => onNavigate("Premium"), // 🚀 දැන් මේක Click කළාමත් Premium Tab එකට යනවා
+                      onTap: () => onNavigate("Premium"), 
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
                         decoration: BoxDecoration(
