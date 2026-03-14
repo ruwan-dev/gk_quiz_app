@@ -16,8 +16,102 @@
 
   <title>AstroQuiz</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+  body {
+    background-color: #0F172A;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    width: 100%; /* 100vw වෙනුවට 100% පාවිච්චි කිරීම වඩාත් සුදුසුයි */
+    height: 100vh;
+  }
+
+  .container {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center; /* Text එක මැදට ගැනීමට මෙය අත්‍යවශ්‍යයි */
+  }
+
+  .logo-text {
+    color: #38BDF8;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 2.5rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    animation: pulse 2s infinite ease-in-out;
+    text-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+    width: 100%; /* Text එක container එක ඇතුළේ full width ගන්න */
+    margin: 0;
+  }
+
+  .sub-text {
+    color: #94A3B8;
+    font-family: sans-serif;
+    font-size: 1rem;
+    margin-top: 10px;
+    letter-spacing: 5px;
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Pulse animation එකේදී මැද සිට විශාල වන බව තහවුරු කරමු */
+  @keyframes pulse {
+    0% { opacity: 0.4; transform: scale(0.95); }
+    50% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0.4; transform: scale(0.95); }
+  }
+
+  .loader {
+    width: 200px;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    margin-top: 30px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 5px;
+  }
+
+  .loader::after {
+    content: '';
+    position: absolute;
+    width: 80px;
+    height: 100%;
+    background: #38BDF8;
+    animation: loading 1.5s infinite ease-in-out;
+  }
+
+  @keyframes loading {
+    0% { left: -80px; }
+    100% { left: 200px; }
+  }
+</style>
 </head>
 <body>
+  <div class="container" id="loading-indicator">
+    <div class="logo-text">Orbitview Innovations</div>
+    <div class="sub-text">LOADING...</div>
+    <div class="loader"></div>
+  </div>
+
   <script src="flutter_bootstrap.js" async></script>
+
+  <script>
+    // Flutter engine එක load වුනාම loading screen එක අයින් කරන්න
+    window.addEventListener('load', function(ev) {
+      // පොඩි වෙලාවක් තියලා indicator එක අයින් කරනවා smooth වෙන්න
+      setTimeout(function() {
+        var loadingIndicator = document.getElementById('loading-indicator');
+        if (loadingIndicator) {
+          loadingIndicator.remove();
+        }
+      }, 1000);
+    });
+  </script>
 </body>
 </html>
