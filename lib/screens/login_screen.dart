@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; 
+import 'package:firebase_auth/firebase_auth.dart'; 
 import '../services/auth_service.dart';
 import '../main.dart';
-import 'home_screen.dart';
+import 'home_screen.dart'; // 🚀 Home Screen එකට යන්න මේක අනිවාර්යයි
 import '../utils/gemini_loader.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -18,7 +20,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   bool _isLogin = true; 
   bool _isLoading = false;
 
-  // 🚀 Space Gradient Animation එක සඳහා Controller එක
   late AnimationController _brandingController;
 
   @override
@@ -26,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     super.initState();
     _brandingController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 60), // වර්ණ හෙමින් ගලාගෙන යන්න කාලය වැඩි කළා
+      duration: const Duration(seconds: 60), 
     )..repeat();
   }
 
@@ -56,13 +57,63 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     dynamic result;
     if (_isLogin) {
       result = await _auth.signInWithEmail(email, password);
+      
+      // 🚀 BUG FIX: Login එක සාර්ථක නම් Home Screen එකට යවනවා
+      if (result != null && mounted) {
+        setState(() => _isLoading = false);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+        return; // මෙතනින් නවතිනවා
+      }
+
     } else {
       result = await _auth.registerWithEmail(email, password);
+      
+      if (result != null) {
+        try {
+          final User? currentUser = FirebaseAuth.instance.currentUser;
+          if (currentUser != null) {
+            await FirebaseFirestore.instance.collection('users').doc(currentUser.uid).set({
+              'email': email,
+              'name': email.split('@')[0], 
+              'totalScore': 0,
+              'isPremium': false,
+              'avatarUrl': '',
+              'isDeactivated': false,
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+          }
+
+          await FirebaseAuth.instance.signOut();
+          
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+              _isLogin = true; 
+              _passwordController.clear(); 
+            });
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Registration Successful! Please Sign In. 🎉"), 
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+              )
+            );
+          }
+          return; 
+          
+        } catch (e) {
+          debugPrint("Error saving user to Firestore: $e");
+        }
+      }
     }
 
     if (mounted) {
+      setState(() => _isLoading = false); 
       if (result == null) {
-        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Authentication Failed. Please check your credentials."), backgroundColor: Colors.redAccent)
         );
@@ -104,7 +155,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  // 🚀 Logo Area
                                   Container(
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
@@ -125,14 +175,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                     ),
                                   ),
                                   const SizedBox(height: 20),
-                                  // ✨ ඔයාගේ අලුත් Welcome Message එක
                                   Text(
-                                    _isLogin ? "Hello Future Leader !" : "Join to the Game of Knowledge!",
+                                    _isLogin ? "Hello Future Leader !" : "Join to the Game !",
                                     style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    _isLogin ? "Join to the Game of Knowledge !" : "Start your journey to the stars",
+                                    _isLogin ? "Welcome back to the Game !" : "Start your journey to the stars",
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(fontSize: 14, color: Colors.white38),
                                   ),
@@ -189,7 +238,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
                             const Spacer(flex: 3), 
 
-                            // 🚀 Branding Section (Footer with Space Gradient)
                             if (!isKeyboardVisible)
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 20.0),
@@ -206,7 +254,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                     ),
                                     const SizedBox(height: 4), 
                                     
-                                    // ✨ Space Object Inspired Gradient Animation
                                     AnimatedBuilder(
                                       animation: _brandingController,
                                       builder: (context, child) {
@@ -216,11 +263,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                               begin: Alignment.topLeft,
                                               end: Alignment.bottomRight,
                                               colors: [
-                                                const Color(0xFF9C27B0), // Cosmic Purple
-                                                const Color(0xFF00ACC1), // Nebula Teal
-                                                const Color(0xFF38BDF8), // Star Blue
-                                                const Color(0xFFE040FB), // Supernova Magenta
-                                                const Color(0xFF9C27B0), // Loop back to Purple
+                                                const Color(0xFF9C27B0), 
+                                                const Color(0xFF00ACC1), 
+                                                const Color(0xFF38BDF8), 
+                                                const Color(0xFFE040FB), 
+                                                const Color(0xFF9C27B0), 
                                               ],
                                               stops: [
                                                 0.0,
@@ -232,7 +279,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                             ).createShader(bounds);
                                           },
                                           child: const Text(
-                                            "OrbitView Innovations", // 👈 කම්පැනි නම මෙතනට දැම්මා
+                                            "OrbitView Innovations", 
                                             style: TextStyle(
                                               color: Colors.white,
                                               fontSize: 15,
@@ -280,7 +327,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     );
   }
 
-  // (Textfield & Dialog logic remains same)
   void _showForgotPasswordDialog(BuildContext context) {
     final TextEditingController resetEmailController = TextEditingController(text: _emailController.text);
     showDialog(

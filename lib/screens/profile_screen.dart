@@ -278,7 +278,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                       children: [
                         const SizedBox(height: 10),
                         
-                        // Profile Area
                         Column(
                           children: [
                             GestureDetector(
@@ -310,7 +309,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                     child: CircleAvatar(
                                       radius: 40,
                                       backgroundColor: isPremium ? const Color(0xFF10B981).withOpacity(0.15) : Colors.white.withOpacity(0.05),
-                                      // 🚀 මෙතනින් තමයි Premium නැත්නම් Avatar එක නොපෙන්නා Default එකට යවන්නේ
                                       backgroundImage: (isPremium && avatarUrl != null && avatarUrl.isNotEmpty) 
                                           ? NetworkImage(avatarUrl) 
                                           : null,
@@ -349,7 +347,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                           ],
                         ),
                         
-                        // Stats Area
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -359,7 +356,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                           ],
                         ),
                         
-                        // Menu Area
                         Container(
                           padding: const EdgeInsets.all(15),
                           decoration: BoxDecoration(
