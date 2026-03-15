@@ -159,7 +159,7 @@ class _PremiumScreenState extends State<PremiumScreen> with SingleTickerProvider
           const Text("Upgrade to Premium", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           const Text("Explore premium benefits", style: TextStyle(color: Color(0xFF38BDF8), fontSize: 13)),
-          const SizedBox(height: 20),
+          const SizedBox(height: 25),
 
           // 🚀 Animated Feature Card with Arrows
           GestureDetector(
@@ -190,8 +190,6 @@ class _PremiumScreenState extends State<PremiumScreen> with SingleTickerProvider
                       child: _buildFeatureContent(_featureIndex),
                     ),
                     const SizedBox(height: 20),
-                    
-                    // 🚀 මෙන්න මෙතනට Arrows දෙක ආපහු එකතු කළා
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -228,11 +226,39 @@ class _PremiumScreenState extends State<PremiumScreen> with SingleTickerProvider
             ),
             child: Column(
               children: [
+                // 🚀 Limited Time Offer Banner eka me thanata genawa (Price ekata udin)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.orangeAccent.withOpacity(0.15),
+                    borderRadius: const BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.local_fire_department_rounded, color: Colors.orangeAccent, size: 16),
+                      SizedBox(width: 8),
+                      Text(
+                        "LIMITED TIME OFFER: UNTIL APRIL 30TH",
+                        style: TextStyle(
+                          color: Colors.orangeAccent, 
+                          fontSize: 12, 
+                          fontWeight: FontWeight.w800, 
+                          letterSpacing: 0.5
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Icon(Icons.local_fire_department_rounded, color: Colors.orangeAccent, size: 16),
+                    ],
+                  ),
+                ),
+                
+                // 🚀 Subscription Fee eka
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                   decoration: BoxDecoration(
                     color: const Color(0xFF10B981).withOpacity(0.08),
-                    borderRadius: const BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
