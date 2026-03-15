@@ -9,5 +9,6 @@ class AppConstants {
   static const String appVersion = "Version 1.0.0";
   static const String companyName = "ORBITVIEW INNOVATIONS";
   static const String bankAccountName = "S.R. Kumara";
-  static const String premiumPrice = "Rs. 1000.00";
+  static const String premiumPrice = "Rs. 950.00";
+  static const int freeQuestionLimit = 10;
 }
