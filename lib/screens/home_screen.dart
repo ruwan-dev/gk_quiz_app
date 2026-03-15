@@ -230,9 +230,28 @@ class _AnimatedPremiumIconState extends State<AnimatedPremiumIcon> with SingleTi
   }
 }
 
-class HomeTab extends StatelessWidget {
+class HomeTab extends StatefulWidget {
   final Function(String) onNavigate; 
   const HomeTab({super.key, required this.onNavigate});
+
+  @override
+  State<HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
+  late AnimationController _borderController;
+
+  @override
+  void initState() {
+    super.initState();
+    _borderController = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
+  }
+
+  @override
+  void dispose() {
+    _borderController.dispose();
+    super.dispose();
+  }
 
   String _getGreeting() {
     var hour = DateTime.now().hour;
@@ -251,7 +270,17 @@ class HomeTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 15), 
+          const SizedBox(height: 25), 
+          
+          Center(
+            child: Image.asset(
+              'assets/logo.png', // 🚀 ලෝගෝ එක මෙතන තියෙනවා
+              width: 100,
+              height: 100,
+            ),
+          ),
+          const SizedBox(height: 20),
+
           StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).snapshots(),
             builder: (context, snapshot) {
@@ -262,97 +291,118 @@ class HomeTab extends StatelessWidget {
               int score = userData?['totalScore'] ?? 0;
               bool isPremium = userData?['isPremium'] ?? false;
 
-              return Column(
-                children: [
-                  Row(
+              return AnimatedBuilder(
+                animation: _borderController,
+                builder: (context, child) {
+                  return CustomPaint(
+                    painter: GradientBorderPainter(
+                      angle: _borderController.value * 2 * math.pi,
+                      strokeWidth: 2,
+                      radius: 30,
+                      gradientColors: [const Color(0xFF38BDF8), const Color(0xFF6366F1), const Color(0xFF38BDF8)],
+                    ),
+                    child: child,
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F172A).withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 25,
-                        backgroundColor: isPremium 
-                            ? const Color(0xFF10B981).withOpacity(0.15) 
-                            : const Color(0xFF38BDF8).withOpacity(0.2),
-                        child: Icon(
-                          isPremium ? Icons.workspace_premium : Icons.person, 
-                          color: isPremium ? Colors.amber : const Color(0xFF38BDF8), 
-                          size: 30
-                        ),
-                      ),
-                      const SizedBox(width: 15),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(_getGreeting(), style: const TextStyle(color: Colors.white38, fontSize: 13)),
-                            Row(
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 25,
+                            backgroundColor: isPremium 
+                                ? const Color(0xFF10B981).withOpacity(0.15) 
+                                : const Color(0xFF38BDF8).withOpacity(0.2),
+                            child: Icon(
+                              isPremium ? Icons.workspace_premium : Icons.person, 
+                              color: isPremium ? Colors.amber : const Color(0xFF38BDF8), 
+                              size: 30
+                            ),
+                          ),
+                          const SizedBox(width: 15),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                                if (isPremium) ...[
-                                  const SizedBox(width: 6),
-                                  const Icon(Icons.verified, color: Color(0xFF10B981), size: 18), 
-                                ],
+                                Text(_getGreeting(), style: const TextStyle(color: Colors.white38, fontSize: 13)),
+                                Row(
+                                  children: [
+                                    Text(name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                                    if (isPremium) ...[
+                                      const SizedBox(width: 6),
+                                      const Icon(Icons.verified, color: Color(0xFF10B981), size: 18), 
+                                    ],
+                                  ],
+                                ),
                               ],
                             ),
-                          ],
-                        ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isPremium ? const Color(0xFF10B981).withOpacity(0.08) : Colors.white.withOpacity(0.05), 
+                              borderRadius: BorderRadius.circular(20), 
+                              border: Border.all(color: isPremium ? Colors.amber.withOpacity(0.5) : Colors.white10)
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.auto_awesome, color: isPremium ? Colors.amber : Colors.amberAccent, size: 16),
+                                const SizedBox(width: 5),
+                                Text("$score XP", style: TextStyle(color: isPremium ? const Color(0xFF10B981) : Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: isPremium ? const Color(0xFF10B981).withOpacity(0.08) : Colors.white.withOpacity(0.05), 
-                          borderRadius: BorderRadius.circular(20), 
-                          border: Border.all(color: isPremium ? Colors.amber.withOpacity(0.5) : Colors.white10)
+                      
+                      if (!isPremium) ...[
+                        const SizedBox(height: 20),
+                        GestureDetector(
+                          onTap: () => widget.onNavigate("Premium"), 
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [const Color(0xFF10B981).withOpacity(0.15), Colors.amber.withOpacity(0.08)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4)),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(color: Colors.amber.withOpacity(0.15), shape: BoxShape.circle),
+                                  child: const Icon(Icons.workspace_premium, color: Colors.amber, size: 28),
+                                ),
+                                const SizedBox(width: 15),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text("Upgrade to Premium", style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 15)),
+                                      SizedBox(height: 6),
+                                      Text("Tap here to unlock all features", style: TextStyle(color: Colors.white60, fontSize: 12)),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.arrow_forward_ios, color: Color(0xFF10B981), size: 16),
+                              ],
+                            ),
+                          ),
                         ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.auto_awesome, color: isPremium ? Colors.amber : Colors.amberAccent, size: 16),
-                            const SizedBox(width: 5),
-                            Text("$score XP", style: TextStyle(color: isPremium ? const Color(0xFF10B981) : Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                          ],
-                        ),
-                      ),
+                      ],
                     ],
                   ),
-                  
-                  if (!isPremium) ...[
-                    const SizedBox(height: 25),
-                    GestureDetector(
-                      onTap: () => onNavigate("Premium"), 
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [const Color(0xFF10B981).withOpacity(0.15), Colors.amber.withOpacity(0.08)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(15),
-                          border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4)),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(color: Colors.amber.withOpacity(0.15), shape: BoxShape.circle),
-                              child: const Icon(Icons.workspace_premium, color: Colors.amber, size: 28),
-                            ),
-                            const SizedBox(width: 15),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text("Upgrade to Premium", style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 15)),
-                                  SizedBox(height: 6),
-                                  Text("Tap here to unlock all features", style: TextStyle(color: Colors.white60, fontSize: 12)),
-                                ],
-                              ),
-                            ),
-                            const Icon(Icons.arrow_forward_ios, color: Color(0xFF10B981), size: 16),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
+                ),
               );
             },
           ),
@@ -404,7 +454,7 @@ class HomeTab extends StatelessWidget {
                       catId: data['id'],
                       isNew: data['isNew'] ?? false,
                       isDisabled: data['isDisabled'] ?? false,
-                      onNavigate: onNavigate, // 🚀 onNavigate එක pass කළා
+                      onNavigate: widget.onNavigate,
                     ),
                   );
                 },
@@ -424,7 +474,7 @@ class AnimatedCategoryCard extends StatefulWidget {
   final String catId; 
   final bool isNew; 
   final bool isDisabled;
-  final Function(String) onNavigate; // 🚀 Constructor එකට එකතු කළා
+  final Function(String) onNavigate;
 
   const AnimatedCategoryCard({
     super.key, 
@@ -434,7 +484,7 @@ class AnimatedCategoryCard extends StatefulWidget {
     required this.catId, 
     this.isNew = false, 
     this.isDisabled = false,
-    required this.onNavigate, // 🚀 
+    required this.onNavigate,
   });
   
   @override
@@ -522,7 +572,7 @@ class _AnimatedCategoryCardState extends State<AnimatedCategoryCard> with Single
                         child: PapersScreen(
                           categoryId: widget.catId, 
                           categoryName: widget.title,
-                          onNavigate: widget.onNavigate, // 🚀 PapersScreen එකටත් pass කළා
+                          onNavigate: widget.onNavigate,
                         )
                       )
                     )
@@ -532,6 +582,7 @@ class _AnimatedCategoryCardState extends State<AnimatedCategoryCard> with Single
               child: Padding(
                 padding: const EdgeInsets.all(16.0), 
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center, // අයිකනය මැදට තබා ගැනීම
                   children: [
                     Container(
                       padding: const EdgeInsets.all(10), 
@@ -540,30 +591,50 @@ class _AnimatedCategoryCardState extends State<AnimatedCategoryCard> with Single
                     ),
                     const SizedBox(width: 20),
                     Expanded(
-                      child: Row(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(widget.title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: widget.isDisabled ? Colors.white54 : Colors.white)),
+                          // 🚀 නම පේළි දෙකකට යාමට ඉඩ දීම
+                          Text(
+                            widget.title, 
+                            maxLines: 2, 
+                            softWrap: true,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 18, 
+                              fontWeight: FontWeight.bold, 
+                              color: widget.isDisabled ? Colors.white54 : Colors.white,
+                              height: 1.2, // පේළි දෙක අතර පරතරය පාලනයට
+                            ),
+                          ),
                           
-                          if (widget.isNew && !widget.isDisabled) ...[
-                            const SizedBox(width: 10),
-                            _buildAnimatedLabel(
-                              "NEW", 
-                              [const Color(0xFF10B981), const Color(0xFF34D399), const Color(0xFF059669), const Color(0xFF10B981)],
-                              const Color(0xFF10B981)
+                          // 🚀 ලේබල් එක නමට යටින් පෙන්වීම (නම දිග වුවහොත් පිරිසිදුව පෙනේ)
+                          if ((widget.isNew && !widget.isDisabled) || widget.isDisabled)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Row(
+                                children: [
+                                  if (widget.isNew && !widget.isDisabled)
+                                    _buildAnimatedLabel(
+                                      "NEW", 
+                                      [const Color(0xFF10B981), const Color(0xFF34D399), const Color(0xFF059669), const Color(0xFF10B981)],
+                                      const Color(0xFF10B981)
+                                    ),
+                                  
+                                  if (widget.isDisabled)
+                                    _buildAnimatedLabel(
+                                      "SOON", 
+                                      [Colors.orangeAccent, Colors.amber, Colors.deepOrangeAccent, Colors.orangeAccent],
+                                      Colors.orangeAccent
+                                    ),
+                                ],
+                              ),
                             ),
-                          ],
-
-                          if (widget.isDisabled) ...[
-                            const SizedBox(width: 10),
-                            _buildAnimatedLabel(
-                              "SOON", 
-                              [Colors.orangeAccent, Colors.amber, Colors.deepOrangeAccent, Colors.orangeAccent],
-                              Colors.orangeAccent
-                            ),
-                          ],
                         ],
-                      )
+                      ),
                     ),
+                    const SizedBox(width: 10),
                     Icon(widget.isDisabled ? Icons.lock : Icons.arrow_forward_ios, size: 16, color: Colors.white24),
                   ]
                 )
