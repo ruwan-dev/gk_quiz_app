@@ -22,12 +22,17 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
 
-  # 🖼️ ඔයාගේ Logo එකේ Path එක විතරක් මෙතන තියෙනවා
   assets:
     - assets/logo.png
+    - assets/icon.png
 
-  # 🚀 සිංහල ෆොන්ට් එක මෙතනින් සම්පූර්ණයෙන්ම අයින් කළා
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon.png"
+  min_sdk_android: 21
