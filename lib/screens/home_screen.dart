@@ -186,7 +186,7 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
               String name = userData?['name'] ?? 'User';
               int score = userData?['totalScore'] ?? 0;
               bool isPremium = userData?['isPremium'] ?? false;
-              String? avatarUrl = userData?['avatarUrl']; // 🚀 අලුතින් එකතු කළ Avatar URL එක
+              String? avatarUrl = userData?['avatarUrl']; 
               
               return AnimatedBuilder(
                 animation: _borderController,
@@ -201,7 +201,6 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
                     children: [
                       Row(
                         children: [
-                          // 🚀 Avatar එක පෙන්වන කොටස (Premium යූසර් කෙනෙක්ට avatar එකක් තියෙනවා නම් පෙන්වනවා)
                           CircleAvatar(
                             radius: 25, 
                             backgroundColor: const Color(0xFF38BDF8).withOpacity(0.2),
@@ -213,7 +212,24 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
                                 : Icon(isPremium ? Icons.workspace_premium : Icons.person, color: isPremium ? Colors.amber : const Color(0xFF38BDF8), size: 30),
                           ),
                           const SizedBox(width: 15),
-                          Expanded(child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    name, 
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
+                                  ),
+                                ),
+                                // 🚀 Premium නම් පමණක් පෙන්වන Verified Badge එක
+                                if (isPremium) ...[
+                                  const SizedBox(width: 5),
+                                  const Icon(Icons.verified, color: Color(0xFF38BDF8), size: 18),
+                                ],
+                              ],
+                            ),
+                          ),
                           Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white10)), child: Text("$score XP", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                         ],
                       ),
@@ -267,7 +283,7 @@ class AnimatedCategoryCard extends StatefulWidget {
 class _AnimatedCategoryCardState extends State<AnimatedCategoryCard> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   @override
-  void initState() { super.initState(); _controller = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat(); }
+  void initState() { super.initState(); _controller = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat(); }
   @override
   void dispose() { _controller.dispose(); super.dispose(); }
 
@@ -292,32 +308,48 @@ class _AnimatedCategoryCardState extends State<AnimatedCategoryCard> with Single
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), color: Colors.white.withOpacity(0.04), border: Border.all(color: Colors.white10)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () { if (!widget.isDisabled) Navigator.push(context, MaterialPageRoute(builder: (context) => MainBackgroundWrapper(child: PapersScreen(categoryId: widget.catId, categoryName: widget.title, onNavigate: widget.onNavigate)))); },
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              Icon(widget.icon, size: 28, color: widget.isDisabled ? Colors.white24 : widget.iconColor),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(widget.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: widget.isDisabled ? Colors.white54 : Colors.white)),
-                    if (widget.isNew || widget.isDisabled) ...[
-                      const SizedBox(height: 8),
-                      if (widget.isNew && !widget.isDisabled) _buildAnimatedLabel("NEW", [const Color(0xFF10B981), const Color(0xFF34D399), const Color(0xFF059669), const Color(0xFF10B981)]),
-                      if (widget.isDisabled) _buildAnimatedLabel("SOON", [Colors.orangeAccent, Colors.amber, Colors.deepOrangeAccent, Colors.orangeAccent]),
+    // 🚀 මෙන්න ආයෙත් එකතු කළ Gradient Border Animation එක
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) => CustomPaint(
+        painter: GradientBorderPainter(
+          angle: _controller.value * 2 * math.pi,
+          strokeWidth: 2,
+          radius: 20,
+          gradientColors: [const Color(0xFF38BDF8), const Color(0xFF6366F1), const Color(0xFF38BDF8)],
+        ),
+        child: child,
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20), 
+          color: Colors.white.withOpacity(0.04), 
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () { if (!widget.isDisabled) Navigator.push(context, MaterialPageRoute(builder: (context) => MainBackgroundWrapper(child: PapersScreen(categoryId: widget.catId, categoryName: widget.title, onNavigate: widget.onNavigate)))); },
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Icon(widget.icon, size: 28, color: widget.isDisabled ? Colors.white24 : widget.iconColor),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(widget.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: widget.isDisabled ? Colors.white54 : Colors.white)),
+                      if (widget.isNew || widget.isDisabled) ...[
+                        const SizedBox(height: 8),
+                        if (widget.isNew && !widget.isDisabled) _buildAnimatedLabel("NEW", [const Color(0xFF10B981), const Color(0xFF34D399), const Color(0xFF059669), const Color(0xFF10B981)]),
+                        if (widget.isDisabled) _buildAnimatedLabel("SOON", [Colors.orangeAccent, Colors.amber, Colors.deepOrangeAccent, Colors.orangeAccent]),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              Icon(widget.isDisabled ? Icons.lock : Icons.arrow_forward_ios, size: 14, color: Colors.white24),
-            ],
+                Icon(widget.isDisabled ? Icons.lock : Icons.arrow_forward_ios, size: 14, color: Colors.white24),
+              ],
+            ),
           ),
         ),
       ),

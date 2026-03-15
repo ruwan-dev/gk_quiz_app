@@ -25,6 +25,12 @@ class _PremiumScreenState extends State<PremiumScreen> with SingleTickerProvider
       'siDesc': "සියලුම අනුමාන ප්‍රශ්න පත්‍ර සඳහා පිවිසුම ලබාගන්න.",
     },
     {
+      'icon': Icons.chat_rounded,
+      'title': "Community Chat Access",
+      'enDesc': "Connect with other students, discuss questions and share knowledge in real-time.",
+      'siDesc': "අනෙක් සිසුන් සමඟ සම්බන්ධ වී ප්‍රශ්න සාකච්ඡා කිරීමට සහ දැනුම බෙදා ගැනීමට ඇති සුවිශේෂී අවස්ථාව.",
+    },
+    {
       'icon': Icons.verified_rounded,
       'title': "Exclusive Verified Badge",
       'enDesc': "Stand out with a special verified badge next to your name.",
@@ -159,6 +165,7 @@ class _PremiumScreenState extends State<PremiumScreen> with SingleTickerProvider
           const Text("Upgrade to Premium", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           const Text("Explore premium benefits", style: TextStyle(color: Color(0xFF38BDF8), fontSize: 13)),
+          
           const SizedBox(height: 25),
 
           // 🚀 Animated Feature Card with Arrows
@@ -226,35 +233,60 @@ class _PremiumScreenState extends State<PremiumScreen> with SingleTickerProvider
             ),
             child: Column(
               children: [
-                // 🚀 Limited Time Offer Banner eka me thanata genawa (Price ekata udin)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.orangeAccent.withOpacity(0.15),
-                    borderRadius: const BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.local_fire_department_rounded, color: Colors.orangeAccent, size: 16),
-                      SizedBox(width: 8),
-                      Text(
-                        "LIMITED TIME OFFER: UNTIL APRIL 30TH",
-                        style: TextStyle(
-                          color: Colors.orangeAccent, 
-                          fontSize: 12, 
-                          fontWeight: FontWeight.w800, 
-                          letterSpacing: 0.5
+                // 🚀 මම මෙන්න මෙතනට VIP Animated Banner එක මාරු කළා (Price එකට උඩින්ම තියෙන විදිහට)
+                AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, child) {
+                    return Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: const [
+                            Color(0xFFFFD700), // Gold
+                            Color(0xFFFFA500), // Orange
+                            Color(0xFFFF8C00), // Dark Orange
+                            Color(0xFFFFD700), // Gold back
+                          ],
+                          stops: [
+                            0.0,
+                            (_controller.value - 0.2).clamp(0.0, 1.0),
+                            _controller.value,
+                            (_controller.value + 0.2).clamp(0.0, 1.0),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(20),
+                          topRight: Radius.circular(20),
                         ),
                       ),
-                      SizedBox(width: 8),
-                      Icon(Icons.local_fire_department_rounded, color: Colors.orangeAccent, size: 16),
-                    ],
-                  ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.auto_awesome, color: Colors.black, size: 16),
+                          const SizedBox(width: 10),
+                          const Column(
+                            children: [
+                              Text(
+                                "LIMITED TIME OFFER",
+                                style: TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 0.8),
+                              ),
+                              Text(
+                                "Until April 30th Only!",
+                                style: TextStyle(color: Colors.black87, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 10),
+                          const Icon(Icons.auto_awesome, color: Colors.black, size: 16),
+                        ],
+                      ),
+                    );
+                  },
                 ),
-                
-                // 🚀 Subscription Fee eka
+
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                   decoration: BoxDecoration(
