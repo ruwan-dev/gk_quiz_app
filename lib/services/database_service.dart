@@ -48,4 +48,31 @@ class DatabaseService {
       return [];
     }
   }
+
+  // 🚀 Chat Features
+  Stream<QuerySnapshot> getChatMessages() {
+    return _db
+        .collection('global_chat')
+        .orderBy('createdAt', descending: true)
+        .limit(100) 
+        .snapshots();
+  }
+
+  // 🚀 Auto Delete වෙන්න expiresAt එකතු කළා
+  Future<bool> sendChatMessage({required String userId, required String userName, required String text, bool isSupport = false}) async {
+    try {
+      await _db.collection('global_chat').add({
+        'userId': userId,
+        'userName': userName,
+        'text': text,
+        'isSupport': isSupport, 
+        'createdAt': Timestamp.now(),
+        // 🚀 දැනට තියෙන වෙලාවට පැය 24ක් එකතු කරලා සේව් කරනවා
+        'expiresAt': Timestamp.fromDate(DateTime.now().add(const Duration(hours: 24))), 
+      });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
 }

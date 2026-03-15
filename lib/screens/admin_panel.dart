@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // 🚀 Clipboard පහසුකම සඳහා
+import 'package:flutter/services.dart'; 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert'; 
 import 'dart:math' as math;
 import '../utils/icon_helper.dart';
 import '../utils/gemini_loader.dart'; 
-import '../utils/app_prompts.dart'; // 🚀 Prompts ගබඩා කර ඇති ෆයිල් එක
+import '../utils/app_prompts.dart'; 
 import 'admin_issues_screen.dart';
 
 class AdminPanel extends StatefulWidget {
@@ -131,7 +131,7 @@ class _AdminPanelState extends State<AdminPanel> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 8, 
+      length: 9, // 🚀 Tab ගාණ 9ක් කළා
       child: Scaffold(
         backgroundColor: const Color(0xFF0F172A),
         appBar: AppBar(
@@ -152,6 +152,7 @@ class _AdminPanelState extends State<AdminPanel> {
               Tab(text: "Manage Quests", icon: Icon(Icons.settings_suggest)),
               Tab(text: "Users", icon: Icon(Icons.people_alt_rounded)),
               Tab(text: "Issues", icon: Icon(Icons.bug_report)),
+              Tab(text: "Support", icon: Icon(Icons.support_agent)), // 🚀 අලුත් Support Tab එක 
             ],
           ),
         ),
@@ -165,6 +166,7 @@ class _AdminPanelState extends State<AdminPanel> {
             _buildTabWrapper(_buildManageQuestionsTab()),
             _buildTabWrapper(_buildManageUsersTab()),
             const AdminIssuesScreen(),
+            _buildTabWrapper(_buildSupportMessagesTab()), // 🚀 Support මැසේජ් පෙන්වන කොටස
           ],
         ),
       ),
@@ -180,7 +182,6 @@ class _AdminPanelState extends State<AdminPanel> {
   Widget _buildAddQuestionTab() => _buildGlassCard("Add New Questions", Colors.greenAccent, [_buildCatDrop((v) => setState(() { _selectedCatForQuest = v; _selectedPaperForQuest = null; }), _selectedCatForQuest), _buildPaperDrop(_selectedCatForQuest, _selectedPaperForQuest, (v) => setState(() => _selectedPaperForQuest = v)), _buildTextField(_questionController, "Question Text", maxLines: 2), _buildTextField(_imageUrlController, "Image URL"), ...List.generate(4, (i) => Row(children: [Radio(value: i, groupValue: _correctAnswerIndex, activeColor: Colors.greenAccent, onChanged: (v) => setState(() => _correctAnswerIndex = v as int)), Expanded(child: _buildTextField(_optionControllers[i], "Option ${i+1}"))])), _buildTextField(_explanationController, "Explanation"), _buildButton(_addQuestion, "Save Question", Colors.green.shade700)]);
   Widget _buildManageQuestionsTab() => _buildGlassCard("Manage Questions", Colors.purpleAccent, [_buildCatDrop((v) => setState(() { _selectedCatForQManage = v; _selectedPaperForQManage = null; }), _selectedCatForQManage), _buildPaperDrop(_selectedCatForQManage, _selectedPaperForQManage, (v) => setState(() => _selectedPaperForQManage = v)), if (_selectedPaperForQManage != null) _buildQuestList(_selectedCatForQManage!, _selectedPaperForQManage!)]);
 
-  // 🚀 Fixed _buildManageUsersTab with correct syntax
   Widget _buildManageUsersTab() {
     return _buildGlassCard("App Users Access", Colors.yellowAccent, [
       StreamBuilder<QuerySnapshot>(
@@ -241,6 +242,78 @@ class _AdminPanelState extends State<AdminPanel> {
                         onPressed: () => _updateUserStatus(snap.data!.docs[i].id, !deact),
                       ),
                     ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    ]);
+  }
+
+  // 🚀 අලුතින් එකතු කළ Support Messages පෙන්වන Tab එකේ කෝඩ් එක
+  Widget _buildSupportMessagesTab() {
+    return _buildGlassCard("Support Requests (@support)", Colors.amber, [
+      StreamBuilder<QuerySnapshot>(
+        // මැසේජ් 100ක් අරන් ඒවායින් support ඒවා විතරක් පෙන්නන්න හදලා තියෙන්නේ
+        // මේකෙන් Firebase Indexes හදන්න කියලා එන error එක මගෑරෙනවා.
+        stream: FirebaseFirestore.instance
+            .collection('global_chat')
+            .orderBy('createdAt', descending: true)
+            .limit(100) 
+            .snapshots(),
+        builder: (context, snap) {
+          if (!snap.hasData) return const LinearProgressIndicator(color: Colors.amber);
+          
+          // isSupport: true තියෙන මැසේජ් විතරක් වෙන් කරගැනීම
+          var supportDocs = snap.data!.docs.where((doc) {
+            var data = doc.data() as Map<String, dynamic>;
+            return data['isSupport'] == true;
+          }).toList();
+
+          if (supportDocs.isEmpty) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20.0),
+              child: Center(child: Text("No support requests at the moment. 🎉", style: TextStyle(color: Colors.white54))),
+            );
+          }
+
+          return ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: supportDocs.length,
+            itemBuilder: (context, i) {
+              var data = supportDocs[i].data() as Map<String, dynamic>;
+              String text = data['text'] ?? '';
+              String userName = data['userName'] ?? 'User';
+              
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                ),
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Colors.amber,
+                    child: Icon(Icons.support_agent, color: Colors.black87),
+                  ),
+                  title: Text(userName, style: const TextStyle(color: Colors.amber, fontSize: 13, fontWeight: FontWeight.bold)),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 5.0),
+                    child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 14)),
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_sweep, color: Colors.redAccent, size: 24),
+                    tooltip: "Delete Message",
+                    onPressed: () async {
+                      if (await _confirm("Delete Request", "Delete this support message?")) {
+                        await FirebaseFirestore.instance.collection('global_chat').doc(supportDocs[i].id).delete();
+                        _showSnackBar("Support message deleted!");
+                      }
+                    },
                   ),
                 ),
               );

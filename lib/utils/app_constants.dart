@@ -11,4 +11,5 @@ class AppConstants {
   static const String bankAccountName = "S.R. Kumara";
   static const String premiumPrice = "Rs. 950.00";
   static const int freeQuestionLimit = 10;
+  static const int maxDailyMessages = 15;
 }

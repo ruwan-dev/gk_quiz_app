@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gk_quiz_app/screens/profile_screen.dart';
 import 'dart:math' as math;
 import '../utils/icon_helper.dart';
 import 'papers_screen.dart';
 import 'admin_panel.dart';
 import 'login_screen.dart';
 import 'leaderboard_screen.dart';
-import 'profile_screen.dart'; 
 import 'premium_screen.dart'; 
+import 'chat_screen.dart'; 
 import '../main.dart';
 import '../theme/app_theme.dart';
 import '../utils/gemini_loader.dart';
@@ -26,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _getScreen(bool isAdmin) {
     switch (_currentLabel) {
       case "Home": return HomeTab(onNavigate: _onNavigateToTab); 
+      case "Chat": return const ChatScreen(); 
       case "Rank": return LeaderboardScreen(onNavigate: _onNavigateToTab); 
       case "Premium": return const PremiumScreen(); 
       case "Profile": return const ProfileScreen();
@@ -87,6 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         List<BottomNavigationBarItem> navItems = [
           const BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          const BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: "Chat"), 
           const BottomNavigationBarItem(icon: Icon(Icons.leaderboard), label: "Rank"),
           const BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ];
@@ -174,7 +177,7 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 35), // 🚀 ලෝගෝ එක සම්පූර්ණයෙන්ම අයින් කර ඇත
+          const SizedBox(height: 35), 
           StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).snapshots(),
             builder: (context, snapshot) {
@@ -183,6 +186,8 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
               String name = userData?['name'] ?? 'User';
               int score = userData?['totalScore'] ?? 0;
               bool isPremium = userData?['isPremium'] ?? false;
+              String? avatarUrl = userData?['avatarUrl']; // 🚀 අලුතින් එකතු කළ Avatar URL එක
+              
               return AnimatedBuilder(
                 animation: _borderController,
                 builder: (context, child) => CustomPaint(
@@ -196,7 +201,17 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
                     children: [
                       Row(
                         children: [
-                          CircleAvatar(radius: 25, backgroundColor: const Color(0xFF38BDF8).withOpacity(0.2), child: Icon(isPremium ? Icons.workspace_premium : Icons.person, color: isPremium ? Colors.amber : const Color(0xFF38BDF8), size: 30)),
+                          // 🚀 Avatar එක පෙන්වන කොටස (Premium යූසර් කෙනෙක්ට avatar එකක් තියෙනවා නම් පෙන්වනවා)
+                          CircleAvatar(
+                            radius: 25, 
+                            backgroundColor: const Color(0xFF38BDF8).withOpacity(0.2),
+                            backgroundImage: (isPremium && avatarUrl != null && avatarUrl.isNotEmpty) 
+                                ? NetworkImage(avatarUrl) 
+                                : null,
+                            child: (isPremium && avatarUrl != null && avatarUrl.isNotEmpty)
+                                ? null 
+                                : Icon(isPremium ? Icons.workspace_premium : Icons.person, color: isPremium ? Colors.amber : const Color(0xFF38BDF8), size: 30),
+                          ),
                           const SizedBox(width: 15),
                           Expanded(child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
                           Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white10)), child: Text("$score XP", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
@@ -256,7 +271,6 @@ class _AnimatedCategoryCardState extends State<AnimatedCategoryCard> with Single
   @override
   void dispose() { _controller.dispose(); super.dispose(); }
 
-  // 🚀 මෙන්න නිවැරදි කළ Animated Label එක (Stops 4 ට Colors 4 ක් ඇත)
   Widget _buildAnimatedLabel(String text, List<Color> colors) {
     return AnimatedBuilder(
       animation: _controller,
@@ -296,7 +310,6 @@ class _AnimatedCategoryCardState extends State<AnimatedCategoryCard> with Single
                     Text(widget.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: widget.isDisabled ? Colors.white54 : Colors.white)),
                     if (widget.isNew || widget.isDisabled) ...[
                       const SizedBox(height: 8),
-                      // 🚀 Colors 4 ක් ලබා දී ඇත (Exception එක fix කර ඇත)
                       if (widget.isNew && !widget.isDisabled) _buildAnimatedLabel("NEW", [const Color(0xFF10B981), const Color(0xFF34D399), const Color(0xFF059669), const Color(0xFF10B981)]),
                       if (widget.isDisabled) _buildAnimatedLabel("SOON", [Colors.orangeAccent, Colors.amber, Colors.deepOrangeAccent, Colors.orangeAccent]),
                     ],
