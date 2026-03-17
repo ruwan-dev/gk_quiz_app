@@ -1,3 +1,5 @@
+// lib/screens/admin_panel.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,6 +9,7 @@ import '../utils/icon_helper.dart';
 import '../utils/gemini_loader.dart'; 
 import '../utils/app_prompts.dart'; 
 import 'admin_issues_screen.dart';
+import 'admin_dashboard_tab.dart'; // 🚀 Aluth file eka import kara
 
 class AdminPanel extends StatefulWidget {
   const AdminPanel({super.key});
@@ -131,7 +134,7 @@ class _AdminPanelState extends State<AdminPanel> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 9, // 🚀 Tab ගාණ 9ක් කළා
+      length: 10,
       child: Scaffold(
         backgroundColor: const Color(0xFF0F172A),
         appBar: AppBar(
@@ -144,6 +147,7 @@ class _AdminPanelState extends State<AdminPanel> {
             labelColor: Color(0xFF38BDF8),
             unselectedLabelColor: Colors.white38,
             tabs: [
+              Tab(text: "Dashboard", icon: Icon(Icons.dashboard)), 
               Tab(text: "Category", icon: Icon(Icons.category)),
               Tab(text: "Paper", icon: Icon(Icons.note_add)),
               Tab(text: "Manage Papers", icon: Icon(Icons.edit_note)),
@@ -152,12 +156,13 @@ class _AdminPanelState extends State<AdminPanel> {
               Tab(text: "Manage Quests", icon: Icon(Icons.settings_suggest)),
               Tab(text: "Users", icon: Icon(Icons.people_alt_rounded)),
               Tab(text: "Issues", icon: Icon(Icons.bug_report)),
-              Tab(text: "Support", icon: Icon(Icons.support_agent)), // 🚀 අලුත් Support Tab එක 
+              Tab(text: "Support", icon: Icon(Icons.support_agent)), 
             ],
           ),
         ),
         body: TabBarView(
           children: [
+            _buildTabWrapper(const AdminDashboardTab()), // 🚀 Wenama file eken call karanawa
             _buildTabWrapper(_buildAddCategoryTab()),
             _buildTabWrapper(_buildAddPaperTab()),
             _buildTabWrapper(_buildManagePapersTab()),
@@ -166,7 +171,7 @@ class _AdminPanelState extends State<AdminPanel> {
             _buildTabWrapper(_buildManageQuestionsTab()),
             _buildTabWrapper(_buildManageUsersTab()),
             const AdminIssuesScreen(),
-            _buildTabWrapper(_buildSupportMessagesTab()), // 🚀 Support මැසේජ් පෙන්වන කොටස
+            _buildTabWrapper(_buildSupportMessagesTab()), 
           ],
         ),
       ),
@@ -252,12 +257,9 @@ class _AdminPanelState extends State<AdminPanel> {
     ]);
   }
 
-  // 🚀 අලුතින් එකතු කළ Support Messages පෙන්වන Tab එකේ කෝඩ් එක
   Widget _buildSupportMessagesTab() {
     return _buildGlassCard("Support Requests (@support)", Colors.amber, [
       StreamBuilder<QuerySnapshot>(
-        // මැසේජ් 100ක් අරන් ඒවායින් support ඒවා විතරක් පෙන්නන්න හදලා තියෙන්නේ
-        // මේකෙන් Firebase Indexes හදන්න කියලා එන error එක මගෑරෙනවා.
         stream: FirebaseFirestore.instance
             .collection('global_chat')
             .orderBy('createdAt', descending: true)
@@ -266,7 +268,6 @@ class _AdminPanelState extends State<AdminPanel> {
         builder: (context, snap) {
           if (!snap.hasData) return const LinearProgressIndicator(color: Colors.amber);
           
-          // isSupport: true තියෙන මැසේජ් විතරක් වෙන් කරගැනීම
           var supportDocs = snap.data!.docs.where((doc) {
             var data = doc.data() as Map<String, dynamic>;
             return data['isSupport'] == true;
