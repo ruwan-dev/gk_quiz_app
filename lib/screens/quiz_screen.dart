@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../providers/quiz_provider.dart';
 import 'result_screen.dart';
 import '../utils/app_constants.dart';
@@ -33,6 +34,74 @@ class _QuizScreenState extends State<QuizScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<QuizProvider>(context, listen: false).loadQuestions(widget.categoryId, widget.paperId);
     });
+  }
+
+  // 1. ප්‍රශ්න අංකය (int questionNumber) argument එකක් ලෙස මෙතැනට ලබා දුන්නා
+  void _showReportDialog(String questionText, int questionNumber) {
+    final TextEditingController reportController = TextEditingController(text: "ප්‍රශ්නයේ පිළිතුර වැරදියි");
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Report an Issue", style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("ප්‍රශ්නයේ ඇති ගැටලුව සඳහන් කරන්න:", style: TextStyle(color: Colors.white70, fontSize: 14)),
+            const SizedBox(height: 15),
+            TextField(
+              controller: reportController,
+              style: const TextStyle(color: Colors.white),
+              maxLines: 3,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.05),
+                hintText: "ගැටලුව මෙතැන ලියන්න...",
+                hintStyle: const TextStyle(color: Colors.white24),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.white10)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel", style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+            onPressed: () async {
+              try {
+                // 2. 'questionNumber' කියන field එක Firestore එකට එකතු කළා
+                await FirebaseFirestore.instance.collection('question_reports').add({
+                  'questionNumber': questionNumber, 
+                  'question': questionText,
+                  'paperId': widget.paperId,
+                  'categoryId': widget.categoryId,
+                  'reportMessage': reportController.text,
+                  'reportedAt': FieldValue.serverTimestamp(),
+                });
+
+                if (!mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("ඔබේ වාර්තාව අප වෙත ලැබුණි. ස්තූතියි!")),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("දෝෂයක් සිදු විය: $e")),
+                );
+              }
+            },
+            child: const Text("Submit Report", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showPremiumLimitDialog() {
@@ -84,7 +153,7 @@ class _QuizScreenState extends State<QuizScreen> {
         leading: IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(context)),
         title: Consumer<QuizProvider>(
           builder: (context, quiz, _) => Container(
-            height: 10, width: 160,
+            height: 10, width: 130, 
             decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(10)),
             child: FractionallySizedBox(
               alignment: Alignment.centerLeft,
@@ -94,6 +163,19 @@ class _QuizScreenState extends State<QuizScreen> {
           ),
         ),
         actions: [
+          Consumer<QuizProvider>(
+            builder: (context, quiz, _) {
+              if (quiz.questions.isEmpty) return const SizedBox();
+              return IconButton(
+                icon: const Icon(Icons.outlined_flag, color: Colors.redAccent, size: 24),
+                // 3. මෙතැනදී 'quiz.currentIndex + 1' ලෙස පවතින ප්‍රශ්න අංකය ලබා දුන්නා
+                onPressed: () => _showReportDialog(
+                  quiz.questions[quiz.currentIndex].questionText,
+                  quiz.currentIndex + 1,
+                ),
+              );
+            }
+          ),
           Consumer<QuizProvider>(
             builder: (context, quiz, _) => Padding(
               padding: const EdgeInsets.only(right: 15),
@@ -221,6 +303,24 @@ class _QuizScreenState extends State<QuizScreen> {
                   ),
                 ),
 
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        "ප්‍රශ්නයේ ගැටලුවක් ඇත්නම් ",
+                        style: TextStyle(color: Colors.white24, fontSize: 10.5),
+                      ),
+                      const Icon(Icons.outlined_flag, color: Colors.redAccent, size: 14),
+                      const Text(
+                        " මගින් report කළ හැක",
+                        style: TextStyle(color: Colors.white24, fontSize: 10.5),
+                      ),
+                    ],
+                  ),
+                ),
+
                 SizedBox(
                   width: double.infinity, height: 55,
                   child: ElevatedButton(
@@ -232,7 +332,6 @@ class _QuizScreenState extends State<QuizScreen> {
                        if (!quizProvider.isAnswerChecked) {
                          quizProvider.checkAnswer();
                        } else {
-                         // 🚀 Premium Limit එක චෙක් කරන තැන
                          if (widget.isPaperPremium && !widget.isUserPremium && quizProvider.currentIndex == (AppConstants.freeQuestionLimit - 1) && quizProvider.questions.length > AppConstants.freeQuestionLimit) {
                            _showPremiumLimitDialog();
                          } else if (quizProvider.currentIndex == quizProvider.questions.length - 1) {
