@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/auth_service.dart';
 import 'home_screen.dart'; 
 import '../utils/gemini_loader.dart';
+import '../main.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -62,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       if (_isLogin) {
         final user = await _auth.signInWithEmail(email, password);
         if (user != null && mounted) {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MainBackgroundWrapper(child: HomeScreen())));
         }
       } else {
         final user = await _auth.registerWithEmail(email, password);
@@ -71,7 +72,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             'email': email, 'name': email.split('@')[0], 'totalScore': 0, 'isPremium': false,
             'avatarUrl': '', 'isDeactivated': false, 'createdAt': FieldValue.serverTimestamp(),
           });
-          if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
+          if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MainBackgroundWrapper(child: HomeScreen())));
         }
       }
     } on FirebaseAuthException catch (e) {
@@ -106,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             'totalScore': 0, 'isPremium': false, 'avatarUrl': user.photoURL ?? '', 'isDeactivated': false, 'createdAt': FieldValue.serverTimestamp(),
           });
         }
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MainBackgroundWrapper(child: HomeScreen())));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
