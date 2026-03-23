@@ -352,7 +352,33 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                           children: [
                             _buildStatCard("Total XP", "${userData?['totalScore'] ?? 0}", Icons.auto_awesome, Colors.amber, isPremium: isPremium),
                             const SizedBox(width: 15),
-                            _buildStatCard("Global Rank", "#1", Icons.emoji_events, Colors.cyanAccent, isPremium: isPremium),
+                            StreamBuilder<QuerySnapshot>(
+                              stream: FirebaseFirestore.instance
+                                  .collection('users')
+                                  .orderBy('totalScore', descending: true)
+                                  .snapshots(),
+                              builder: (context, rankSnapshot) {
+                                String rankText = "#-";
+                                if (rankSnapshot.hasData) {
+                                  final docs = rankSnapshot.data!.docs.where((doc) {
+                                    final data = doc.data() as Map<String, dynamic>? ?? {};
+                                    return data['isDeactivated'] != true;
+                                  }).toList();
+                                  
+                                  int myRank = 0;
+                                  for (int i = 0; i < docs.length; i++) {
+                                    if (docs[i].id == user?.uid) {
+                                      myRank = i + 1;
+                                      break;
+                                    }
+                                  }
+                                  if (myRank > 0) {
+                                    rankText = "#$myRank";
+                                  }
+                                }
+                                return _buildStatCard("Global Rank", rankText, Icons.emoji_events, Colors.cyanAccent, isPremium: isPremium);
+                              },
+                            ),
                           ],
                         ),
                         
