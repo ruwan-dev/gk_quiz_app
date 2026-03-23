@@ -76,6 +76,13 @@ class PapersScreen extends StatelessWidget {
                   final paper = docs[index];
                   final paperData = paper.data() as Map<String, dynamic>;
                   final bool isPaperPremium = paperData['isPremium'] ?? false;
+                  
+                  double rating = 0.0;
+                  int ratingCount = paperData['ratingCount'] ?? 0;
+                  num totalRating = paperData['totalRating'] ?? 0;
+                  if (ratingCount > 0) {
+                    rating = totalRating / ratingCount;
+                  }
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 15),
@@ -85,6 +92,8 @@ class PapersScreen extends StatelessWidget {
                       categoryId: categoryId,
                       isPaperPremium: isPaperPremium,
                       isUserPremium: isUserPremium,
+                      rating: rating,
+                      ratingCount: ratingCount,
                       onNavigate: onNavigate,
                     ),
                   );
@@ -104,6 +113,8 @@ class AnimatedPaperCard extends StatefulWidget {
   final String categoryId;
   final bool isPaperPremium;
   final bool isUserPremium;
+  final double rating;
+  final int ratingCount;
   final Function(String) onNavigate;
 
   const AnimatedPaperCard({
@@ -113,6 +124,8 @@ class AnimatedPaperCard extends StatefulWidget {
     required this.categoryId,
     required this.isPaperPremium,
     required this.isUserPremium,
+    this.rating = 0.0,
+    this.ratingCount = 0,
     required this.onNavigate,
   });
 
@@ -173,14 +186,32 @@ class _AnimatedPaperCardState extends State<AnimatedPaperCard> {
                 ),
                 const SizedBox(width: 20),
                 Expanded(
-                  child: Text(
-                    widget.title, 
-                    style: const TextStyle(
-                      fontSize: 17, 
-                      fontWeight: FontWeight.bold, 
-                      color: Colors.white
-                    )
-                  )
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.title, 
+                        style: const TextStyle(
+                          fontSize: 17, 
+                          fontWeight: FontWeight.bold, 
+                          color: Colors.white
+                        )
+                      ),
+                      if (widget.rating > 0) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.star, color: Colors.amber, size: 14),
+                            const SizedBox(width: 4),
+                            Text(widget.rating.toStringAsFixed(1), style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                            const SizedBox(width: 4),
+                            Text("(${widget.ratingCount})", style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
