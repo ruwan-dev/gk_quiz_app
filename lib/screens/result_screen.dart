@@ -344,25 +344,28 @@ class _AnimatedRatingDialogState extends State<_AnimatedRatingDialog> with Singl
                       // Firestore එක Update කිරීම
                       final user = FirebaseAuth.instance.currentUser;
                       if (user != null) {
-                        final batch = FirebaseFirestore.instance.batch();
-                        
-                        final userRef = FirebaseFirestore.instance
-                            .collection('users').doc(user.uid)
-                            .collection('completed_papers').doc(widget.paperId);
-                        batch.update(userRef, {
-                          'isRated': true, // දෙපාරක් Rate කිරීම වැළැක්වීමට
-                          'ratingValue': _userRating,
-                        });
+                        try {
+                          final userRef = FirebaseFirestore.instance
+                              .collection('users').doc(user.uid)
+                              .collection('completed_papers').doc(widget.paperId);
+                          
+                          // Use set with merge: true so a score=0 run does not throw NOT_FOUND
+                          await userRef.set({
+                            'isRated': true,
+                            'ratingValue': _userRating,
+                          }, SetOptions(merge: true));
 
-                        final paperRef = FirebaseFirestore.instance
-                            .collection('categories').doc(widget.categoryId)
-                            .collection('papers').doc(widget.paperId);
-                        batch.set(paperRef, {
-                          'totalRating': FieldValue.increment(_userRating),
-                          'ratingCount': FieldValue.increment(1),
-                        }, SetOptions(merge: true));
-
-                        await batch.commit();
+                          final paperRef = FirebaseFirestore.instance
+                              .collection('categories').doc(widget.categoryId)
+                              .collection('papers').doc(widget.paperId);
+                          
+                          await paperRef.set({
+                            'totalRating': FieldValue.increment(_userRating),
+                            'ratingCount': FieldValue.increment(1),
+                          }, SetOptions(merge: true));
+                        } catch (e) {
+                          debugPrint("Rating save warning: $e");
+                        }
                       }
 
                       if (!context.mounted) return;
