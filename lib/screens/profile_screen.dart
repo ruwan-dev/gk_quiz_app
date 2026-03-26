@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'help_screen.dart';
+import 'login_devices_screen.dart';
 import '../utils/app_constants.dart'; 
 
 class ProfileScreen extends StatefulWidget {
@@ -416,9 +417,16 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                               ),
                               const SizedBox(height: 8),
                               _buildSmallMenuTile(
+                                icon: Icons.devices_rounded,
+                                title: "Login Devices",
+                                color: const Color(0xFF38BDF8),
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginDevicesScreen())),
+                              ),
+                              const SizedBox(height: 8),
+                              _buildSmallMenuTile(
                                 icon: Icons.info_outline,
                                 title: "About Us",
-                                color: const Color(0xFF38BDF8),
+                                color: Colors.purpleAccent,
                                 onTap: _showAboutUsDialog,
                               ),
                             ],

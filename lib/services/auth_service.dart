@@ -140,4 +140,59 @@ class AuthService {
       debugPrint("Logging Failed: $e");
     }
   }
+
+  // 📱 Log Login Device / Session Info
+  Future<void> logLoginDevice(String uid, String method) async {
+    try {
+      String userAgent = kIsWeb ? html.window.navigator.userAgent : "Mobile";
+      String browser = _parseBrowser(userAgent);
+      String os = _parseOS(userAgent);
+
+      final deviceData = {
+        'method': method,
+        'userAgent': userAgent,
+        'browser': browser,
+        'os': os,
+        'platform': kIsWeb ? "Web" : "Mobile",
+        'location': kIsWeb ? html.window.location.href : "N/A",
+        'loginAt': FieldValue.serverTimestamp(),
+      };
+
+      // Write to the subcollection (full history)
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('login_devices')
+          .add(deviceData);
+
+      // Denormalize last-login fields onto the user doc (for admin table)
+      await _firestore.collection('users').doc(uid).update({
+        'lastLoginAt': FieldValue.serverTimestamp(),
+        'lastBrowser': browser,
+        'lastOS': os,
+        'lastLoginMethod': method,
+      });
+    } catch (e) {
+      debugPrint("logLoginDevice failed: $e");
+    }
+  }
+
+  static String _parseBrowser(String ua) {
+    if (ua.contains("Edg/")) return "Edge";
+    if (ua.contains("OPR/") || ua.contains("Opera")) return "Opera";
+    if (ua.contains("Chrome")) return "Chrome";
+    if (ua.contains("Firefox")) return "Firefox";
+    if (ua.contains("Safari") && !ua.contains("Chrome")) return "Safari";
+    return "Unknown Browser";
+  }
+
+  static String _parseOS(String ua) {
+    if (ua.contains("Windows NT 10")) return "Windows 10/11";
+    if (ua.contains("Windows")) return "Windows";
+    if (ua.contains("Mac OS X")) return "macOS";
+    if (ua.contains("iPhone") || ua.contains("iPad")) return "iOS";
+    if (ua.contains("Android")) return "Android";
+    if (ua.contains("Linux")) return "Linux";
+    return "Unknown OS";
+  }
 }

@@ -134,7 +134,7 @@ class _AdminPanelState extends State<AdminPanel> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 10,
+      length: 11,
       child: Scaffold(
         backgroundColor: const Color(0xFF0F172A),
         appBar: AppBar(
@@ -157,6 +157,7 @@ class _AdminPanelState extends State<AdminPanel> {
               Tab(text: "Users", icon: Icon(Icons.people_alt_rounded)),
               Tab(text: "Issues", icon: Icon(Icons.bug_report)),
               Tab(text: "Support", icon: Icon(Icons.support_agent)), 
+              Tab(text: "Login Logs", icon: Icon(Icons.fingerprint)),
             ],
           ),
         ),
@@ -172,6 +173,7 @@ class _AdminPanelState extends State<AdminPanel> {
             _buildTabWrapper(_buildManageUsersTab()),
             const AdminIssuesScreen(),
             _buildTabWrapper(_buildSupportMessagesTab()), 
+            _buildTabWrapper(_buildLoginLogsTab()),
           ],
         ),
       ),
@@ -257,7 +259,106 @@ class _AdminPanelState extends State<AdminPanel> {
     ]);
   }
 
+  Widget _buildLoginLogsTab() {
+    return _buildGlassCard("User Login Logs", const Color(0xFF38BDF8), [
+      StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collectionGroup('login_devices')
+            .orderBy('loginAt', descending: true)
+            .limit(200)
+            .snapshots(),
+        builder: (context, snap) {
+          if (!snap.hasData) return const LinearProgressIndicator(color: Color(0xFF38BDF8));
+
+          final docs = snap.data!.docs;
+
+          if (docs.isEmpty) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20.0),
+              child: Center(child: Text("No login sessions recorded yet.", style: TextStyle(color: Colors.white54))),
+            );
+          }
+
+          return ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: docs.length,
+            itemBuilder: (context, i) {
+              var data = docs[i].data() as Map<String, dynamic>;
+              String browser = data['browser'] ?? 'Unknown';
+              String os = data['os'] ?? 'Unknown';
+              String method = data['method'] ?? '?';
+              Timestamp? loginAt = data['loginAt'] as Timestamp?;
+              String dateStr = loginAt != null
+                  ? _formatTimestamp(loginAt)
+                  : 'Unknown time';
+
+              // Derive a user email from the document path:
+              // users/{uid}/login_devices/{docId}
+              String uid = docs[i].reference.parent.parent?.id ?? '?';
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.12)),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  leading: CircleAvatar(
+                    backgroundColor: const Color(0xFF38BDF8).withOpacity(0.12),
+                    child: const Icon(Icons.fingerprint, color: Color(0xFF38BDF8), size: 22),
+                  ),
+                  title: Text(
+                    '$browser  •  $os',
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 3),
+                      Text('UID: $uid', style: const TextStyle(color: Colors.white38, fontSize: 10)),
+                      Text(dateStr, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                    ],
+                  ),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: method.contains('Google')
+                          ? Colors.redAccent.withOpacity(0.12)
+                          : const Color(0xFF38BDF8).withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      method,
+                      style: TextStyle(
+                        color: method.contains('Google') ? Colors.redAccent : const Color(0xFF38BDF8),
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    ]);
+  }
+
+  String _formatTimestamp(Timestamp ts) {
+    final dt = ts.toDate().toLocal();
+    final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    final hour = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+    final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+    final min = dt.minute.toString().padLeft(2, '0');
+    return '${months[dt.month - 1]} ${dt.day}, ${dt.year}  •  $hour:$min $ampm';
+  }
+
   Widget _buildSupportMessagesTab() {
+
     return _buildGlassCard("Support Requests (@support)", Colors.amber, [
       StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance

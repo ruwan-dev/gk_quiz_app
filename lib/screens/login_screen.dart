@@ -63,6 +63,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       if (_isLogin) {
         final user = await _auth.signInWithEmail(email, password);
         if (user != null && mounted) {
+          await _auth.logLoginDevice(user.uid, "Email");
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MainBackgroundWrapper(child: HomeScreen())));
         }
       } else {
@@ -72,6 +73,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             'email': email, 'name': email.split('@')[0], 'totalScore': 0, 'isPremium': false,
             'avatarUrl': '', 'isDeactivated': false, 'createdAt': FieldValue.serverTimestamp(),
           });
+          await _auth.logLoginDevice(user.uid, "Email-Register");
           if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MainBackgroundWrapper(child: HomeScreen())));
         }
       }
@@ -107,6 +109,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             'totalScore': 0, 'isPremium': false, 'avatarUrl': user.photoURL ?? '', 'isDeactivated': false, 'createdAt': FieldValue.serverTimestamp(),
           });
         }
+        await _auth.logLoginDevice(user.uid, "Google");
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MainBackgroundWrapper(child: HomeScreen())));
       }
     } finally {

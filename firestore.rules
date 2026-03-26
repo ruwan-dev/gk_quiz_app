@@ -1,0 +1,74 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helper functions ──────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    // ─── Users ─────────────────────────────────────────────────
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid);
+
+      // 📱 Login Devices — only the account owner can read/write
+      match /login_devices/{deviceId} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    // ─── Categories & Papers ───────────────────────────────────
+    match /categories/{catId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Admin-only via Firebase Console / CLI
+
+      match /papers/{paperId} {
+        allow read: if isSignedIn();
+        allow write: if false;
+
+        match /questions/{questionId} {
+          allow read: if isSignedIn();
+          allow write: if false;
+        }
+      }
+    }
+
+    // ─── Global Chat ───────────────────────────────────────────
+    match /global_chat/{msgId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+                    && request.resource.data.uid == request.auth.uid;
+      allow delete: if isSignedIn()
+                    && resource.data.uid == request.auth.uid;
+    }
+
+    // ─── Auth / Debug Logs (write-only for clients) ────────────
+    match /auth_debug_logs/{docId} {
+      allow create: if true;
+      allow read, update, delete: if false;
+    }
+
+    match /auth_failures/{docId} {
+      allow create: if true;
+      allow read, update, delete: if false;
+    }
+
+    match /password_reset_logs/{docId} {
+      allow create: if true;
+      allow read, update, delete: if false;
+    }
+
+    // ─── Issues ────────────────────────────────────────────────
+    match /issues/{issueId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+  }
+}

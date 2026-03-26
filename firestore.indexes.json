@@ -1,0 +1,15 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "login_devices",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "loginAt",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
