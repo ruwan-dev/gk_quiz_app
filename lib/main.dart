@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // ⭐️ අලුතින් එක් කරන ලදි
 import 'package:provider/provider.dart';
-import 'package:flutter/foundation.dart'; // Added for kIsWeb
+import 'package:flutter/foundation.dart'; 
 import 'firebase_options.dart';
 import 'theme/app_theme.dart';
 import 'screens/login_screen.dart';
@@ -19,6 +20,16 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+
+    // ⭐️ App එක Start වෙද්දී Firestore Local Cache එක Clear කිරීම (Cache Issue එක විසඳීමට)
+    if (!kIsWeb) { 
+      try {
+        await FirebaseFirestore.instance.clearPersistence();
+        debugPrint("Firestore Cache Cleared Successfully!");
+      } catch (e) {
+        debugPrint("Firebase cache clear error: $e");
+      }
+    }
 
     // If on web, handle potential persistence issues in Incognito
     if (kIsWeb) {
