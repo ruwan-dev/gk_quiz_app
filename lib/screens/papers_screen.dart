@@ -46,60 +46,79 @@ class PapersScreen extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
             ),
           ),
+          // ⭐️ මෙතන ඉඳන් Completed Papers ලබාගන්න අලුත් Stream එකක් එකතු කළා
           body: StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
-                .collection('categories')
-                .doc(categoryId)
-                .collection('papers')
+                .collection('users')
+                .doc(currentUser?.uid)
+                .collection('completed_papers')
                 .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) return const Center(child: Text("Error loading papers", style: TextStyle(color: Colors.white)));
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator(color: Color(0xFF38BDF8)));
-              }
-              
-              final docs = snapshot.data!.docs.where((doc) {
-                final data = doc.data() as Map<String, dynamic>;
-                return !(data.containsKey('isVisible') && data['isVisible'] == false);
-              }).toList();
-
-              if (docs.isEmpty) {
-                return const Center(
-                  child: Text("No papers available for this category.", style: TextStyle(color: Colors.white70))
-                );
+            builder: (context, completedSnap) {
+              Set<String> completedPaperIds = {};
+              if (completedSnap.hasData) {
+                completedPaperIds = completedSnap.data!.docs.map((doc) => doc.id).toSet();
               }
 
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                itemCount: docs.length,
-                itemBuilder: (context, index) {
-                  final paper = docs[index];
-                  final paperData = paper.data() as Map<String, dynamic>;
-                  final bool isPaperPremium = paperData['isPremium'] ?? false;
+              return StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('categories')
+                    .doc(categoryId)
+                    .collection('papers')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) return const Center(child: Text("Error loading papers", style: TextStyle(color: Colors.white)));
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator(color: Color(0xFF38BDF8)));
+                  }
                   
-                  double rating = 0.0;
-                  int ratingCount = paperData['ratingCount'] ?? 0;
-                  num totalRating = paperData['totalRating'] ?? 0;
-                  if (ratingCount > 0) {
-                    rating = totalRating / ratingCount;
+                  final docs = snapshot.data!.docs.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    return !(data.containsKey('isVisible') && data['isVisible'] == false);
+                  }).toList();
+
+                  if (docs.isEmpty) {
+                    return const Center(
+                      child: Text("No papers available for this category.", style: TextStyle(color: Colors.white70))
+                    );
                   }
 
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 15),
-                    child: AnimatedPaperCard(
-                      title: paperData['name'] ?? paperData['title'] ?? paper.id.toUpperCase(),
-                      paperId: paper.id,
-                      categoryId: categoryId,
-                      isPaperPremium: isPaperPremium,
-                      isUserPremium: isUserPremium,
-                      rating: rating,
-                      ratingCount: ratingCount,
-                      onNavigate: onNavigate,
-                    ),
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      final paper = docs[index];
+                      final paperData = paper.data() as Map<String, dynamic>;
+                      final bool isPaperPremium = paperData['isPremium'] ?? false;
+                      
+                      double rating = 0.0;
+                      int ratingCount = paperData['ratingCount'] ?? 0;
+                      num totalRating = paperData['totalRating'] ?? 0;
+                      if (ratingCount > 0) {
+                        rating = totalRating / ratingCount;
+                      }
+
+                      // ⭐️ පේපර් එක කරලා තියෙනවද කියලා පරීක්ෂා කිරීම
+                      bool isCompleted = completedPaperIds.contains(paper.id);
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 15),
+                        child: AnimatedPaperCard(
+                          title: paperData['name'] ?? paperData['title'] ?? paper.id.toUpperCase(),
+                          paperId: paper.id,
+                          categoryId: categoryId,
+                          isPaperPremium: isPaperPremium,
+                          isUserPremium: isUserPremium,
+                          rating: rating,
+                          ratingCount: ratingCount,
+                          isCompleted: isCompleted, // ⭐️ අලුතින් යවන Data එක
+                          onNavigate: onNavigate,
+                        ),
+                      );
+                    },
                   );
                 },
               );
-            },
+            }
           ),
         );
       }
@@ -115,6 +134,7 @@ class AnimatedPaperCard extends StatefulWidget {
   final bool isUserPremium;
   final double rating;
   final int ratingCount;
+  final bool isCompleted; // ⭐️ අලුතින් එක් කළ variable එක
   final Function(String) onNavigate;
 
   const AnimatedPaperCard({
@@ -126,6 +146,7 @@ class AnimatedPaperCard extends StatefulWidget {
     required this.isUserPremium,
     this.rating = 0.0,
     this.ratingCount = 0,
+    this.isCompleted = false, // ⭐️ Default false
     required this.onNavigate,
   });
 
@@ -147,13 +168,15 @@ class _AnimatedPaperCardState extends State<AnimatedPaperCard> {
           borderRadius: BorderRadius.circular(20),
           color: _isHovered ? Colors.white.withOpacity(0.12) : Colors.white.withOpacity(0.04),
           border: Border.all(
-            color: _isHovered ? const Color(0xFF38BDF8).withOpacity(0.5) : Colors.white10
+            // ⭐️ සම්පූර්ණ කර ඇත්නම් කොළ පාටින් border එකක් පෙන්වයි
+            color: widget.isCompleted 
+                ? Colors.greenAccent.withOpacity(0.4) 
+                : (_isHovered ? const Color(0xFF38BDF8).withOpacity(0.5) : Colors.white10)
           ),
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
           onTap: () {
-            // Paper eka click kalama kelinma QuizScreen ekata yanawa. Limit eka QuizScreen eke balanawa.
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -162,7 +185,7 @@ class _AnimatedPaperCardState extends State<AnimatedPaperCard> {
                     categoryId: widget.categoryId, 
                     paperId: widget.paperId,
                     isUserPremium: widget.isUserPremium, 
-                    isPaperPremium: widget.isPaperPremium, // Paper status eka pass karanawa
+                    isPaperPremium: widget.isPaperPremium, 
                     onNavigate: widget.onNavigate, 
                   ),
                 ),
@@ -176,12 +199,20 @@ class _AnimatedPaperCardState extends State<AnimatedPaperCard> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: widget.isPaperPremium ? Colors.amber.withOpacity(0.1) : const Color(0xFF38BDF8).withOpacity(0.1),
+                    // ⭐️ සම්පූර්ණ කර ඇත්නම් අයිකන් එකේ පසුබිම කොළ පාට වේ
+                    color: widget.isCompleted
+                        ? Colors.greenAccent.withOpacity(0.15)
+                        : (widget.isPaperPremium ? Colors.amber.withOpacity(0.1) : const Color(0xFF38BDF8).withOpacity(0.1)),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    widget.isPaperPremium ? Icons.workspace_premium : Icons.description, 
-                    color: widget.isPaperPremium ? Colors.amber : const Color(0xFF38BDF8),
+                    // ⭐️ සම්පූර්ණ කර ඇත්නම් හරි ලකුණක් පෙන්වයි
+                    widget.isCompleted 
+                        ? Icons.check_circle 
+                        : (widget.isPaperPremium ? Icons.workspace_premium : Icons.description), 
+                    color: widget.isCompleted
+                        ? Colors.greenAccent
+                        : (widget.isPaperPremium ? Colors.amber : const Color(0xFF38BDF8)),
                   ),
                 ),
                 const SizedBox(width: 20),
@@ -198,6 +229,17 @@ class _AnimatedPaperCardState extends State<AnimatedPaperCard> {
                           color: Colors.white
                         )
                       ),
+                      // ⭐️ සම්පූර්ණ කර ඇති බව පෙන්වන Completed Badge එක
+                      if (widget.isCompleted) ...[
+                        const SizedBox(height: 5),
+                        Row(
+                          children: [
+                            const Icon(Icons.task_alt, color: Colors.greenAccent, size: 14),
+                            const SizedBox(width: 5),
+                            Text("Completed", style: TextStyle(color: Colors.greenAccent.withOpacity(0.9), fontSize: 12, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ],
                       if (widget.rating > 0) ...[
                         const SizedBox(height: 4),
                         Row(
@@ -216,9 +258,10 @@ class _AnimatedPaperCardState extends State<AnimatedPaperCard> {
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   transform: Matrix4.translationValues(_isHovered ? 5 : 0, 0, 0),
-                  child: const Icon(
+                  child: Icon(
+                    // ⭐️ Play අයිකන් එකත් Completed නම් කොළ පාට වෙන්න හැදුවා
                     Icons.play_circle_fill, 
-                    color: Color(0xFF38BDF8), 
+                    color: widget.isCompleted ? Colors.greenAccent : const Color(0xFF38BDF8), 
                     size: 24
                   ),
                 ),

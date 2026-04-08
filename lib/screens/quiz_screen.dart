@@ -32,11 +32,58 @@ class _QuizScreenState extends State<QuizScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<QuizProvider>(context, listen: false).loadQuestions(widget.categoryId, widget.paperId);
+      Provider.of<QuizProvider>(context, listen: false).loadQuestions(
+        widget.categoryId, 
+        widget.paperId,
+        onTimeUp: () {
+          if (mounted) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => AlertDialog(
+                backgroundColor: const Color(0xFF0F172A),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                title: const Text("කාලය අවසන්! ⏳", style: TextStyle(color: Colors.redAccent)),
+                content: const Text("සම්පූර්ණ ප්‍රශ්න පත්‍රය සඳහා ලබා දී තිබූ කාලය අවසන් විය.", style: TextStyle(color: Colors.white70)),
+                actions: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF38BDF8)),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _goToResult();
+                    },
+                    child: const Text("View Results", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            );
+          }
+        }
+      );
     });
   }
 
-  // 1. ප්‍රශ්න අංකය (int questionNumber) argument එකක් ලෙස මෙතැනට ලබා දුන්නා
+  void _goToResult() {
+    final quizProvider = Provider.of<QuizProvider>(context, listen: false);
+    Navigator.pushReplacement(
+      context, 
+      MaterialPageRoute(
+        builder: (context) => MainBackgroundWrapper(
+          child: ResultScreen(
+            score: quizProvider.score, 
+            totalQuestions: quizProvider.questions.length, 
+            categoryId: widget.categoryId, 
+            paperId: widget.paperId,
+            isUserPremium: widget.isUserPremium,
+            isPaperPremium: widget.isPaperPremium,
+            wrongAnswers: quizProvider.wrongAnswers,
+            onNavigate: widget.onNavigate,
+          )
+        )
+      )
+    );
+  }
+
   void _showReportDialog(String questionText, int questionNumber) {
     final TextEditingController reportController = TextEditingController(text: "ප්‍රශ්නයේ පිළිතුර වැරදියි");
 
@@ -76,7 +123,6 @@ class _QuizScreenState extends State<QuizScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
             onPressed: () async {
               try {
-                // 2. 'questionNumber' කියන field එක Firestore එකට එකතු කළා
                 await FirebaseFirestore.instance.collection('question_reports').add({
                   'questionNumber': questionNumber, 
                   'question': questionText,
@@ -152,14 +198,28 @@ class _QuizScreenState extends State<QuizScreen> {
         elevation: 0,
         leading: IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(context)),
         title: Consumer<QuizProvider>(
-          builder: (context, quiz, _) => Container(
-            height: 10, width: 130, 
-            decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(10)),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: quiz.questions.isEmpty ? 0 : (quiz.currentIndex + 1) / quiz.questions.length,
-              child: Container(decoration: BoxDecoration(gradient: const LinearGradient(colors: [Colors.pinkAccent, Colors.purpleAccent]), borderRadius: BorderRadius.circular(10))),
-            ),
+          builder: (context, quiz, _) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (quiz.isPaperTimerEnabled)
+                Row(
+                  children: [
+                    const Icon(Icons.hourglass_bottom, color: Colors.orangeAccent, size: 14),
+                    const SizedBox(width: 5),
+                    Text(quiz.formattedPaperTime, style: const TextStyle(color: Colors.orangeAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              if (quiz.isPaperTimerEnabled) const SizedBox(height: 5),
+              Container(
+                height: 10, width: 130, 
+                decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(10)),
+                child: FractionallySizedBox(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: quiz.questions.isEmpty ? 0 : (quiz.currentIndex + 1) / quiz.questions.length,
+                  child: Container(decoration: BoxDecoration(gradient: const LinearGradient(colors: [Colors.pinkAccent, Colors.purpleAccent]), borderRadius: BorderRadius.circular(10))),
+                ),
+              ),
+            ],
           ),
         ),
         actions: [
@@ -168,7 +228,6 @@ class _QuizScreenState extends State<QuizScreen> {
               if (quiz.questions.isEmpty) return const SizedBox();
               return IconButton(
                 icon: const Icon(Icons.outlined_flag, color: Colors.redAccent, size: 24),
-                // 3. මෙතැනදී 'quiz.currentIndex + 1' ලෙස පවතින ප්‍රශ්න අංකය ලබා දුන්නා
                 onPressed: () => _showReportDialog(
                   quiz.questions[quiz.currentIndex].questionText,
                   quiz.currentIndex + 1,
@@ -177,15 +236,18 @@ class _QuizScreenState extends State<QuizScreen> {
             }
           ),
           Consumer<QuizProvider>(
-            builder: (context, quiz, _) => Padding(
-              padding: const EdgeInsets.only(right: 15),
-              child: CircularPercentIndicator(
-                radius: 20.0, lineWidth: 3.5, percent: quiz.timerPercent,
-                center: Text("${quiz.secondsRemaining}", style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold)),
-                progressColor: quiz.secondsRemaining < 10 ? Colors.redAccent : const Color(0xFF38BDF8),
-                backgroundColor: Colors.white10, circularStrokeCap: CircularStrokeCap.round,
-              ),
-            ),
+            builder: (context, quiz, _) {
+              if (quiz.questions.isEmpty || !quiz.isTimerEnabled) return const SizedBox();
+              return Padding(
+                padding: const EdgeInsets.only(right: 15),
+                child: CircularPercentIndicator(
+                  radius: 20.0, lineWidth: 3.5, percent: quiz.timerPercent,
+                  center: Text("${quiz.secondsRemaining}", style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold)),
+                  progressColor: quiz.secondsRemaining < 10 ? Colors.redAccent : const Color(0xFF38BDF8),
+                  backgroundColor: Colors.white10, circularStrokeCap: CircularStrokeCap.round,
+                ),
+              );
+            }
           ),
         ],
       ),
@@ -248,7 +310,7 @@ class _QuizScreenState extends State<QuizScreen> {
                             }
 
                             return GestureDetector(
-                              onTap: quizProvider.isAnswerChecked ? null : () => quizProvider.selectAnswer(index),
+                              onTap: (quizProvider.isAnswerChecked || quizProvider.isPaperTimeUp) ? null : () => quizProvider.selectAnswer(index),
                               child: Container(
                                 margin: const EdgeInsets.only(bottom: 12), 
                                 padding: const EdgeInsets.all(16),
@@ -328,29 +390,14 @@ class _QuizScreenState extends State<QuizScreen> {
                       backgroundColor: const Color(0xFF38BDF8), 
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
                     ),
-                    onPressed: quizProvider.selectedAnswerIndex == null ? null : () {
+                    onPressed: (quizProvider.selectedAnswerIndex == null || quizProvider.isPaperTimeUp) ? null : () {
                        if (!quizProvider.isAnswerChecked) {
                          quizProvider.checkAnswer();
                        } else {
                          if (widget.isPaperPremium && !widget.isUserPremium && quizProvider.currentIndex == (AppConstants.freeQuestionLimit - 1) && quizProvider.questions.length > AppConstants.freeQuestionLimit) {
                            _showPremiumLimitDialog();
                          } else if (quizProvider.currentIndex == quizProvider.questions.length - 1) {
-                           Navigator.pushReplacement(
-                             context, 
-                             MaterialPageRoute(
-                               builder: (context) => MainBackgroundWrapper(
-                                 child: ResultScreen(
-                                   score: quizProvider.score, 
-                                   totalQuestions: quizProvider.questions.length, 
-                                   categoryId: widget.categoryId, 
-                                   paperId: widget.paperId,
-                                   isUserPremium: widget.isUserPremium,
-                                   isPaperPremium: widget.isPaperPremium,
-                                   onNavigate: widget.onNavigate,
-                                 )
-                               )
-                             )
-                           );
+                           _goToResult();
                          } else {
                            quizProvider.nextQuestion();
                          }

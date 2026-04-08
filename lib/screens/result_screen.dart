@@ -14,6 +14,7 @@ class ResultScreen extends StatefulWidget {
   final String paperId;
   final bool isUserPremium;
   final bool isPaperPremium;
+  final List<Map<String, dynamic>> wrongAnswers;
   final Function(String) onNavigate;
 
   const ResultScreen({
@@ -24,6 +25,7 @@ class ResultScreen extends StatefulWidget {
     required this.paperId,
     required this.isUserPremium,
     required this.isPaperPremium,
+    required this.wrongAnswers,
     required this.onNavigate,
   });
 
@@ -33,7 +35,7 @@ class ResultScreen extends StatefulWidget {
 
 class _ResultScreenState extends State<ResultScreen> {
   bool _isFirstAttempt = false; 
-  bool _alreadyRated = false; // කලින් Rate කරලාද කියලා බලන්න
+  bool _alreadyRated = false;
   bool _isLoading = true;
 
   @override
@@ -42,7 +44,6 @@ class _ResultScreenState extends State<ResultScreen> {
     _saveScoreToDatabase(); 
   }
 
-  // XP සහ ලකුණු Save කිරීමේ Logic එක (Stable)
   Future<void> _saveScoreToDatabase() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -61,7 +62,7 @@ class _ResultScreenState extends State<ResultScreen> {
           await paperRef.set({
             'score': widget.score,
             'completedAt': Timestamp.now(),
-            'isRated': false, // මුල් වතාවේදී false ලෙස Save කරයි
+            'isRated': false,
           });
 
           await userRef.set({
@@ -73,7 +74,6 @@ class _ResultScreenState extends State<ResultScreen> {
       } else {
         setState(() { 
           _isFirstAttempt = false; 
-          // Firestore එකෙන් කලින් Rate කරලා තියෙනවාද කියලා පරීක්ෂා කරයි
           _alreadyRated = paperDoc.data()?['isRated'] ?? false;
         });
       }
@@ -81,13 +81,10 @@ class _ResultScreenState extends State<ResultScreen> {
     setState(() { _isLoading = false; });
   }
 
-  // ⭐️ බොත්තම් එබූ විට ක්‍රියාත්මක වන Logic එක
   void _handleNavigation(BuildContext context, Widget destination) {
-    // Rate කරලා නැති පේපර් එකක් නම් පමණක් Dialog එක පෙන්වයි
     if (!_alreadyRated) {
       _showRatingDialog(context, destination);
     } else {
-      // කලින් Rate කර ඇත්නම් කෙලින්ම අදාළ Screen එකට යයි
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => MainBackgroundWrapper(child: destination)),
@@ -108,6 +105,99 @@ class _ResultScreenState extends State<ResultScreen> {
     );
   }
 
+  void _showReviewBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0F172A),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => FractionallySizedBox(
+        heightFactor: 0.85,
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.1))),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("වැරදුනු ප්‍රශ්න", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white), 
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ]
+              )
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(20),
+                itemCount: widget.wrongAnswers.length,
+                itemBuilder: (context, index) {
+                  final item = widget.wrongAnswers[index];
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 15),
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Q: ${item['questionText']}", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 15),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.cancel, color: Colors.redAccent, size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(child: Text("ඔබේ පිළිතුර: ${item['selectedOption']}", style: const TextStyle(color: Colors.redAccent, fontSize: 15))),
+                          ]
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.check_circle, color: Colors.greenAccent, size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(child: Text("නිවැරදි පිළිතුර: ${item['correctOption']}", style: const TextStyle(color: Colors.greenAccent, fontSize: 15))),
+                          ]
+                        ),
+                        if (item['explanation'] != null && item['explanation'].toString().isNotEmpty) ...[
+                          const SizedBox(height: 15),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(Icons.lightbulb_outline, color: Color(0xFF10B981), size: 18),
+                                const SizedBox(width: 8),
+                                Expanded(child: Text(item['explanation'], style: const TextStyle(color: Colors.white70, fontSize: 14))),
+                              ],
+                            ),
+                          )
+                        ]
+                      ]
+                    )
+                  );
+                }
+              )
+            )
+          ]
+        )
+      )
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final int maxScore = widget.totalQuestions * 10;
@@ -117,29 +207,29 @@ class _ResultScreenState extends State<ResultScreen> {
     Color progressColor;
     
     if (percentage >= 0.8) {
-      feedbackMessage = "Excellent Work! 🏆";
+      feedbackMessage = "විශිෂ්ටයි! 🏆";
       progressColor = Colors.greenAccent;
     } else if (percentage >= 0.5) {
-      feedbackMessage = "Good Job! 👍";
+      feedbackMessage = "ඉතා හොඳයි! 👍";
       progressColor = Colors.orangeAccent;
     } else {
-      feedbackMessage = "Keep Practicing! 💪";
+      feedbackMessage = "තවදුරටත් පුහුණු වන්න! 💪";
       progressColor = Colors.redAccent;
     }
 
     return Scaffold(
       backgroundColor: Colors.transparent, 
       appBar: AppBar(
-        title: const Text("Quiz Results"),
+        title: const Text("ප්‍රතිඵල"),
         automaticallyImplyLeading: false, 
       ),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator(color: Colors.white))
         : Center(
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(20.0),
               child: Card(
-                color: Colors.white.withValues(alpha: 0.95), 
+                color: Colors.white.withOpacity(0.95), 
                 elevation: 20,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
                 child: Padding(
@@ -164,16 +254,16 @@ class _ResultScreenState extends State<ResultScreen> {
                         backgroundColor: Colors.grey.shade300,
                       ),
                       const SizedBox(height: 20),
-                      Text("Your Score: ${widget.score} / $maxScore", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+                      Text("ඔබේ ලකුණු: ${widget.score} / $maxScore", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
                       const SizedBox(height: 15),
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
                         decoration: BoxDecoration(
-                          color: _isFirstAttempt ? const Color(0xFF10B981).withValues(alpha: 0.15) : Colors.orange.withValues(alpha: 0.15),
+                          color: _isFirstAttempt ? const Color(0xFF10B981).withOpacity(0.15) : Colors.orange.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: _isFirstAttempt ? const Color(0xFF10B981).withValues(alpha: 0.5) : Colors.orange.withValues(alpha: 0.5),
+                            color: _isFirstAttempt ? const Color(0xFF10B981).withOpacity(0.5) : Colors.orange.withOpacity(0.5),
                             width: 1.5,
                           )
                         ),
@@ -181,8 +271,8 @@ class _ResultScreenState extends State<ResultScreen> {
                           children: [
                             Text(
                               _isFirstAttempt 
-                                  ? "✨ ${widget.score} XP added to your Leaderboard!" 
-                                  : "🔄 Practice Run: You have already completed this paper, so these points won't be added to the Leaderboard.",
+                                  ? "✨ ඔබගේ Leaderboard එකට ${widget.score} XP එකතු විය!" 
+                                  : "ඔබ මීට පෙර මෙම ප්‍රශ්න පත්‍රය කර ඇති බැවින්, මෙම ලකුණු Leaderboard එකට එකතු නොවේ.",
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: _isFirstAttempt ? Colors.green.shade800 : Colors.deepOrange.shade800, 
@@ -193,9 +283,9 @@ class _ResultScreenState extends State<ResultScreen> {
                             if (_isFirstAttempt) ...[
                               const SizedBox(height: 5),
                               Text(
-                                "(10 XP per correct answer)",
+                                "(නිවැරදි පිළිතුරකට 10 XP බැගින්)",
                                 style: TextStyle(
-                                  color: Colors.green.shade900.withValues(alpha: 0.7),
+                                  color: Colors.green.shade900.withOpacity(0.7),
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -204,7 +294,29 @@ class _ResultScreenState extends State<ResultScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 35),
+                      const SizedBox(height: 25),
+                      if (widget.wrongAnswers.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 25),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.redAccent.withOpacity(0.1),
+                                foregroundColor: Colors.redAccent,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  side: BorderSide(color: Colors.redAccent.withOpacity(0.5), width: 1.5),
+                                ),
+                              ),
+                              onPressed: () => _showReviewBottomSheet(context),
+                              icon: const Icon(Icons.error_outline),
+                              label: const Text("වැරදුනු ප්‍රශ්න බලන්න", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                            ),
+                          ),
+                        ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
@@ -215,7 +327,6 @@ class _ResultScreenState extends State<ResultScreen> {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                             onPressed: () {
-                              // Retry Click කළ විට
                               _handleNavigation(context, QuizScreen(
                                 categoryId: widget.categoryId, 
                                 paperId: widget.paperId,
@@ -225,7 +336,7 @@ class _ResultScreenState extends State<ResultScreen> {
                               ));
                             },
                             icon: const Icon(Icons.refresh, color: Colors.white),
-                            label: const Text("Retry", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            label: const Text("නැවත කරන්න", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                           ),
                           ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
@@ -234,11 +345,10 @@ class _ResultScreenState extends State<ResultScreen> {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                             onPressed: () {
-                              // Home Click කළ විට
                               _handleNavigation(context, const HomeScreen());
                             },
                             icon: const Icon(Icons.home, color: Colors.white),
-                            label: const Text("Home", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            label: const Text("මුල් පිටුව", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ),
@@ -252,7 +362,6 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 }
 
-// ⭐️ Submit බොත්තම සහිත Animated Gradient Rating Dialog එක
 class _AnimatedRatingDialog extends StatefulWidget {
   final String categoryId;
   final String paperId;
@@ -306,7 +415,7 @@ class _AnimatedRatingDialogState extends State<_AnimatedRatingDialog> with Singl
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                  "Rate this Paper",
+                  "ප්‍රශ්න පත්‍රය Rate කරන්න",
                   style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 10),
@@ -341,7 +450,6 @@ class _AnimatedRatingDialogState extends State<_AnimatedRatingDialog> with Singl
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     onPressed: _userRating == 0 ? null : () async {
-                      // Firestore එක Update කිරීම
                       final user = FirebaseAuth.instance.currentUser;
                       if (user != null) {
                         try {
@@ -349,7 +457,6 @@ class _AnimatedRatingDialogState extends State<_AnimatedRatingDialog> with Singl
                               .collection('users').doc(user.uid)
                               .collection('completed_papers').doc(widget.paperId);
                           
-                          // Use set with merge: true so a score=0 run does not throw NOT_FOUND
                           await userRef.set({
                             'isRated': true,
                             'ratingValue': _userRating,
@@ -369,15 +476,14 @@ class _AnimatedRatingDialogState extends State<_AnimatedRatingDialog> with Singl
                       }
 
                       if (!context.mounted) return;
-                      Navigator.pop(context); // Dialog වසන්න
-                      // ඉන්පසු අදාළ Screen එකට (Home හෝ Retry) යන්න
+                      Navigator.pop(context); 
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(builder: (context) => MainBackgroundWrapper(child: widget.nextScreen)),
                         (route) => false,
                       );
                     },
-                    child: const Text("Submit Rating", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    child: const Text("Submit කරන්න", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
                 ),
                 const SizedBox(height: 5),
